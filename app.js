@@ -48,9 +48,8 @@ app.use(bodyParser.json());
 
 dataRoute(app); //register the route
 
-
 app.all("*", (req, res) => {
-  //le restanti chiamate che non sono state mappate rintornano 404
+  console.log(`Invalid Uri Resource ${req.baseUrl}`)
   res.send({
     success: false,
     status: 404,
