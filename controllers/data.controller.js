@@ -44,6 +44,7 @@ exports.updateData = async (req, res) => {
     let settings = { method: "Get" };
     let item, continent, country;
     var lastUpdateContinent = null;
+    var justUpdate = false;
 
     continent = Continent.find({ name: 'Europe' }, async function (e, docs) {
       if (e) {
@@ -54,17 +55,18 @@ exports.updateData = async (req, res) => {
         await fetch(url, settings)
           .then(res => res.json())
           .then((json) => {
-
+            continent = Continent();
             for (var isoCode in json) {
               item = json[isoCode];
               if (item.continent == "Europe") {
-                continent = Continent();
+                
+                justUpdate = !(docs.length == 0);
 
-                docs.length == 0
+                !justUpdate
                   ? country = setCountryData(item, continent, "1900-01-01", false)
-                  : country = setCountryData(item, null, docs[0]._doc.lastUpdate, true);
+                  : country = setCountryData(item, continent, docs[0]._doc.lastUpdate, true);
 
-                if (country) {
+                if (!justUpdate) {
                   lastUpdateContinent == null
                     ? lastUpdateContinent = country.lastUpdate
                     : lastUpdateContinent < country.lastUpdate
@@ -73,8 +75,10 @@ exports.updateData = async (req, res) => {
                 }
               }
             }
+            
+            console.log(continent);
 
-            if (country) {
+            if (!justUpdate) {
               updateContinentStatistics(continent, lastUpdateContinent);
               res.send({
                 success: true,
@@ -123,7 +127,7 @@ function setCountryData(item, continent, lastUpdate, onlyUpdates) {
     country.life_expectancy = item.life_expectancy;
     country.human_development_index = item.human_development_index;
 
-    if (continent != null) {
+    if (!onlyUpdates) {
       continent.population != null ? continent.population += item.population : null;
       continent.population_density != null ? continent.population_density += item.population_density : null;
       continent.median_age != null ? continent.median_age += item.median_age : null;
