@@ -36,6 +36,34 @@ exports.getCountryInfo = (req, res) => {
 
 };
 
+exports.getAllCountryInfo = (req, res) => {
+  try {
+    console.log(`DEBUG START: getAllCountryInfo'`);
+
+    Country.find({})
+      .select("-data")
+      .exec((err, countries) => {
+        if (!err) {
+          res.send({
+            success: true,
+            status: 200,
+            data: countries,
+          });
+          console.log(`DEBUG END: getAllCountryInfo`);
+        }
+        else {
+          console.error(`ERROR: getAllCountryInfo : country error > ${JSON.stringify(err)}`);
+          res.send({ success: false, message: err });
+        }
+      });
+  }
+  catch (e) {
+    console.error(`CATCH: getAllCountryInfo : country error > ${e}`);
+    return res.send({ success: false, message: e.message });
+  }
+
+};
+
 exports.updateData = async (req, res) => {
   try {
     console.log(`DEBUG START: updateData`);
@@ -59,7 +87,7 @@ exports.updateData = async (req, res) => {
             for (var isoCode in json) {
               item = json[isoCode];
               if (item.continent == "Europe") {
-                
+
                 justUpdate = !(docs.length == 0);
 
                 !justUpdate
@@ -75,8 +103,6 @@ exports.updateData = async (req, res) => {
                 }
               }
             }
-            
-            console.log(continent);
 
             if (!justUpdate) {
               updateContinentStatistics(continent, lastUpdateContinent);
@@ -184,14 +210,12 @@ function setCountryData(item, continent, lastUpdate, onlyUpdates) {
     })
 
     if (newData) {
+      country.total_cases = filteredDate[filteredDate.length - 1].total_cases
       country.lastUpdate = countryLastUpdate;
       country.save();
       return country;
     }
     else return newData;
-
-
-
 
   } catch (e) {
     console.error(`CATCH: updateData : error > ${e}`);

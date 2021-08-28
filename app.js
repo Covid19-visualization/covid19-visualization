@@ -21,8 +21,8 @@ app.listen(port);
 // Configuration
 app.use(express.static(__dirname + '/public'));
 
-app.use(bodyParser.json({limit: "50mb"}));
-app.use(bodyParser.urlencoded({limit: "50mb", extended: true, parameterLimit:50000}));
+app.use(bodyParser.json({ limit: "50mb" }));
+app.use(bodyParser.urlencoded({ limit: "50mb", extended: true, parameterLimit: 50000 }));
 
 app.use(express.json());
 app.use(compression());
@@ -38,6 +38,7 @@ app.use((req, res, next) => {
     "Origin, X-Requested-With, x-access-token, Content-Type, Accept"
   );
   res.setHeader("Access-Control-Allow-Credentials", true);
+  res.setHeader("Access-Control-Allow-Origin", "*");
 
   next();
 });
