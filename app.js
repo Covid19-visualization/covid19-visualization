@@ -50,7 +50,7 @@ app.use(bodyParser.json());
 dataRoute(app); //register the route
 
 app.all("*", (req, res) => {
-  console.log(`Invalid Uri Resource ${req.baseUrl}`)
+  console.log(`Invalid Uri Resource ${req.url}`);
   res.send({
     success: false,
     status: 404,

@@ -38,24 +38,48 @@ exports.getCountryInfo = (req, res) => {
 
 exports.getAllCountryInfo = (req, res) => {
   try {
-    console.log(`DEBUG START: getAllCountryInfo'`);
+    console.log(`DEBUG START: getAllCountryInfo ${JSON.stringify(req.body, null, 1)}`);
+    let from = new Date(req.body.from);
+    let to = req.body.to;
 
-    Country.find({})
-      .select("-data")
-      .exec((err, countries) => {
-        if (!err) {
-          res.send({
-            success: true,
-            status: 200,
-            data: countries,
-          });
-          console.log(`DEBUG END: getAllCountryInfo`);
+    Country.aggregate(
+      [
+        {
+          $unwind: {
+            path: '$data',
+            includeArrayIndex: 'string',
+            preserveNullAndEmptyArrays: false
+          }
+        },
+        {
+          $match: {
+            "data.date": { $gte: from }
+          }
+        },
+        {
+          $group: {
+            _id: '$name',
+            new_cases: {
+              $sum: '$data.new_cases'
+            }
+          }
         }
-        else {
-          console.error(`ERROR: getAllCountryInfo : country error > ${JSON.stringify(err)}`);
-          res.send({ success: false, message: err });
-        }
-      });
+      ]
+    ).exec((err, countries) => {
+      if (!err) {
+        res.send({
+          success: true,
+          status: 200,
+          data: countries,
+        });
+        console.log(`DEBUG END: getAllCountryInfo ${countries.length}`);
+      }
+      else {
+        console.error(`ERROR: getAllCountryInfo : country error > ${JSON.stringify(err)}`);
+        res.send({ success: false, message: err });
+      }
+    });
+
   }
   catch (e) {
     console.error(`CATCH: getAllCountryInfo : country error > ${e}`);
