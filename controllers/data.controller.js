@@ -40,7 +40,7 @@ exports.getAllCountryInfo = (req, res) => {
   try {
     console.log(`DEBUG START: getAllCountryInfo ${JSON.stringify(req.body, null, 1)}`);
     let from = new Date(req.body.from);
-    let to = req.body.to;
+    let to = new Date(req.body.to);
 
     Country.aggregate(
       [
@@ -53,17 +53,17 @@ exports.getAllCountryInfo = (req, res) => {
         },
         {
           $match: {
-            "data.date": { $gte: from }
+            "data.date": { $gte: from, $lte: to }
           }
         },
         {
           $group: {
             _id: '$name',
-            new_cases: {
-              $sum: '$data.new_cases'
-            }
-          }
-        }
+            total_cases: { $sum: '$data.new_cases' },
+            population: { $first: '$population' },
+            name: { $first: "$name" }
+          },
+        },
       ]
     ).exec((err, countries) => {
       if (!err) {
