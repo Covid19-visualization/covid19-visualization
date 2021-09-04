@@ -72,7 +72,7 @@ exports.getAllCountryInfo = (req, res) => {
           status: 200,
           data: countries,
         });
-        console.log(`DEBUG END: getAllCountryInfo ${countries.length}`);
+        console.log(`DEBUG END: getAllCountryInfo ${JSON.stringify(countries)}`);
       }
       else {
         console.error(`ERROR: getAllCountryInfo : country error > ${JSON.stringify(err)}`);
