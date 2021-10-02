@@ -5,6 +5,7 @@ const Country = require('../models/country.model');
 const Continent = require('../models/continent.model');
 const DailyDataScheme = require('../models/dailyData.model');
 const DailyData = mongoose.model("DailyData", DailyDataScheme);
+const kmeans = require('node-kmeans');
 
 const { CONST } = require("../utils/utils");
 
@@ -60,6 +61,7 @@ exports.getAllCountryInfo = (req, res) => {
           $group: {
             _id: '$name',
             total_cases: { $sum: '$data.new_cases' },
+            total_vaccinations: { $sum: '$data.new_vaccinations_smoothed' }, // not every countries saves data daily
             population: { $first: '$population' },
             name: { $first: "$name" }
           },
@@ -72,6 +74,7 @@ exports.getAllCountryInfo = (req, res) => {
           status: 200,
           data: countries,
         });
+        //console.log(`DEBUG END: getAllCountryInfo ${JSON.stringify(countries, null, 2)}`);
         console.log(`DEBUG END: getAllCountryInfo ${countries.length}`);
       }
       else {
@@ -87,6 +90,54 @@ exports.getAllCountryInfo = (req, res) => {
   }
 
 };
+
+exports.getVaccinationsInfo = (req, res) => {
+  try {
+    console.log(`DEBUG START: getVaccinationsInfo ${JSON.stringify(req.body, null, 1)}`);
+    let from = new Date(req.body.from);
+    let to = new Date(req.body.to);
+    let selectedCountries = req.body.selectedCountries;
+
+    Country.aggregate(
+      [
+        {
+          $unwind: {
+            path: '$data',
+            includeArrayIndex: 'string',
+            preserveNullAndEmptyArrays: false
+          }
+        },
+        {
+          $match: {
+            "data.date": { $gte: from, $lte: to },
+            "name": { $in: selectedCountries }
+          }
+        },
+      ]
+    ).exec((err, countries) => {
+      if (!err) {
+        res.send({
+          success: true,
+          status: 200,
+          data: countries,
+        });
+        console.log(`DEBUG END: getVaccinationsInfo ${JSON.stringify(countries, null, 2)}`);
+        //console.log(`DEBUG END: getVaccinationsInfo ${countries.length}`);
+      }
+      else {
+        console.error(`ERROR: getVaccinationsInfo : country error > ${JSON.stringify(err)}`);
+        res.send({ success: false, message: err });
+      }
+    });
+
+  }
+  catch (e) {
+    console.error(`CATCH: getVaccinationsInfo : country error > ${e}`);
+    return res.send({ success: false, message: e.message });
+  }
+
+};
+
 
 exports.updateData = async (req, res) => {
   try {
@@ -159,7 +210,7 @@ exports.updateData = async (req, res) => {
 
 function setCountryData(item, continent, lastUpdate, onlyUpdates) {
   try {
-    let country = Country();
+    let country = Country({ "name": item.location });
     country.name = item.location;
     country.continent = item.continent;
     country.population = item.population;
@@ -177,6 +228,7 @@ function setCountryData(item, continent, lastUpdate, onlyUpdates) {
     country.life_expectancy = item.life_expectancy;
     country.human_development_index = item.human_development_index;
 
+    // Calculate a sum of data over all the countries
     if (!onlyUpdates) {
       continent.population != null ? continent.population += item.population : null;
       continent.population_density != null ? continent.population_density += item.population_density : null;
@@ -197,6 +249,7 @@ function setCountryData(item, continent, lastUpdate, onlyUpdates) {
     let filteredDate = item.data;
     let newData = false;
 
+    // Only updates the newly fetched data
     if (onlyUpdates) {
       filteredDate = item.data.filter((item) => {
         return new Date(item.date) > lastUpdate
@@ -204,6 +257,7 @@ function setCountryData(item, continent, lastUpdate, onlyUpdates) {
     }
 
 
+    //For each dailyData (filtered by range) compute the information needed
     filteredDate.map((data) => {
       let timestamp = data.date;
 
@@ -228,6 +282,9 @@ function setCountryData(item, continent, lastUpdate, onlyUpdates) {
       dailyData.tests_per_case = data.tests_per_case;
       dailyData.tests_units = data.tests_units;
       dailyData.stringency_index = data.stringency_index;
+      dailyData.new_vaccinations_smoothed = data.new_vaccinations_smoothed;
+      dailyData.people_fully_vaccinated = data.people_fully_vaccinated; // 2 doses
+      dailyData.people_vaccinated = data.people_vaccinated; // 1 dose
 
       country.data.push(dailyData);
       newData = true;
@@ -235,7 +292,15 @@ function setCountryData(item, continent, lastUpdate, onlyUpdates) {
 
     if (newData) {
       country.total_cases = filteredDate[filteredDate.length - 1].total_cases
+      country.people_fully_vaccinated = filteredDate[filteredDate.length - 1].people_fully_vaccinated
+      country.people_vaccinated = filteredDate[filteredDate.length - 1].people_vaccinated
+
       country.lastUpdate = countryLastUpdate;
+
+      if (country.total_vaccinations > 0) {
+        console.log(filteredDate[filteredDate.length - 1].total_vaccinations);
+        console.log(country.name, country.total_vaccinations);
+      }
       country.save();
       return country;
     }
@@ -262,4 +327,36 @@ function updateContinentStatistics(continent, lastUpdate) {
   continent.human_development_index /= CONST.EUROPE.NUM_COUNTRIES;
   continent.lastUpdate = lastUpdate;
   continent.save();
+}
+
+
+exports.kmeansTest = (req, res) => {
+  const data = [
+    { 'country': 'Italy', 'positive': 91259, 'deaths': 60420, 'gdp': 1.4 },
+    { 'country': 'France', 'positive': 400000, 'deaths': 98787, 'gdp': 3.4 },
+    { 'country': 'Spain', 'positive': 700, 'deaths': 716, 'gdp': 1.5 },
+    { 'country': 'Germany', 'positive': 48000, 'deaths': 11567, 'gdp': 2.4 },
+    { 'country': 'UK', 'positive': 14000, 'deaths': 6426, 'gdp': 1.09 },
+    { 'country': 'Poland', 'positive': 15000, 'deaths': 8700, 'gdp': 0.8 },
+  ];
+
+  // Create the data 2D-array (vectors) describing the data
+  let vectors = new Array();
+  for (let i = 0; i < data.length; i++) {
+    vectors[i] = [data[i]['positive'], data[i]['deaths'], data[i]['gdp']];
+  }
+
+  kmeans.clusterize(vectors, { k: 2 }, (err, result) => {
+    if (err) console.error(err);
+    else {
+
+      res.send({
+        success: true,
+        status: 200,
+        data: result,
+      });
+    }
+  });
+
+
 }
