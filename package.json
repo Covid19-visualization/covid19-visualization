@@ -10,8 +10,7 @@
   "author": "io",
   "license": "ISC",
   "devDependencies": {
-    "gulp": "^4.0.2",
-    "nodemon": "^2.0.1"
+    "gulp": "^4.0.2"
   },
   "dependencies": {
     "bcrypt": "^4.0.1",
