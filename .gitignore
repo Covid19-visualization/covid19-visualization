@@ -105,4 +105,4 @@ dist
 
 config.js
 secret.js
-Test/
+package-lock.json
