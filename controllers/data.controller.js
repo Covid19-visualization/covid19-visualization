@@ -97,7 +97,7 @@ exports.getSelectedCountriesInfo = (req, res) => {
     let from = new Date(req.body.from);
     let to = new Date(req.body.to);
     let selectedCountries = req.body.selectedCountries;
-
+    
     Country.aggregate(
       [
         {
@@ -109,11 +109,19 @@ exports.getSelectedCountriesInfo = (req, res) => {
         },
         {
           $match: {
-            "name": { $in: selectedCountries },
             "data.date": { $gte: from, $lte: to },
+            "name": { $in: selectedCountries },
           }
+          
         },
-        
+        {
+          $group: {
+            _id: "$name" ,  
+            dailyData: { $addToSet: "$data" }
+          },
+        },
+
+
       ]
     ).exec((err, countries) => {
       if (!err) {
