@@ -7,13 +7,15 @@ exports.CONST = {
         NAME: "Europe"
     },
     DEFAULT: {
-        DATE: "1900-01-01"
+        DATE: "1900-01-01",
+        COVID_UPDATE_URL: "https://covid.ourworldindata.org/data/owid-covid-data.json"
     },
     METHODS: {
         GET_EUROPE_DAILY_DATA: "getEuropeDailyData",
         GET_ALL_COUNTRY_INFO: "getAllCountryInfo",
         GET_COUNTRY_INFO: "getCountryInfo",
-        GET_SELECTED_COUNTRIES_INFO: "getSelectedCountriesInfo"
+        GET_SELECTED_COUNTRIES_INFO: "getSelectedCountriesInfo",
+        UPDATE_DATA: "updateData",
     }
 }
 

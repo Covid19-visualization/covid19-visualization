@@ -34,6 +34,16 @@ exports.RESPONSE_CODE = {
         ALREADY_EXISTENT: {
             success: true,
             status: 202
+        },
+        CORRECT_UPDATE: {
+            success: true,
+            status: 200,
+            message: "Data correctly updated"
+        },
+        ALREADY_UPDATED: {
+            success: true,
+            status: 200,
+            message: "Data already updated!"
         }
     }
 }

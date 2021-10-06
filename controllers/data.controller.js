@@ -132,73 +132,67 @@ exports.getSelectedCountriesInfo = (req, res) => {\
 };
 
 exports.updateData = async (req, res) => {
+  let methodName = CONST.METHODS.UPDATE_DATA;
+  var lastUpdateContinent = null, justUpdate = false;
+
   try {
-    console.log(`DEBUG START: updateData`);
+    debugStart(methodName, req.body)
 
-    let url = "https://covid.ourworldindata.org/data/owid-covid-data.json"
-    let settings = { method: "Get" };
-    let item, continent, country;
-    var lastUpdateContinent = null;
-    var justUpdate = false;
-
-    continent = Continent.find({ name: 'Europe' }, async function (e, docs) {
+    continent = Continent.find({ name: CONST.EUROPE.NAME }, async function (e, docs) {
       if (e) {
-        console.error(`CATCH: updateData : error > ${e}`);
-        return res.send({ success: false, message: e.message });
+        sendError(res, RESPONSE_CODE.ERROR.SERVER_ERROR, err.message)
+        debugError(methodName, err.message)
       }
       else {
-        await fetch(url, settings)
+        await fetch(CONST.DEFAULT.COVID_UPDATE_URL, { method: "Get" })
           .then(res => res.json())
           .then((json) => {
+            let item, continent, country;
             continent = Continent();
-            for (var isoCode in json) {
-              item = json[isoCode];
-              if (item.continent == CONST.EUROPE.NAME) {
-
-                justUpdate = !(docs.length == 0);
-
-                !justUpdate
-                  ? country = setCountryData(item, continent, CONST.DEFAULT.DATE, false)
-                  : country = setCountryData(item, continent, docs[0]._doc.lastUpdate, true);
-
-                if (!justUpdate) {
-                  lastUpdateContinent == null
-                    ? lastUpdateContinent = country.lastUpdate
-                    : lastUpdateContinent < country.lastUpdate
-                      ? lastUpdateContinent = country.lastUpdate
-                      : null;
-                }
-              }
-            }
+            ({ item, country } = extractCountryData(json, item, country, continent));
 
             if (!justUpdate) {
               updateContinentStatistics(continent, lastUpdateContinent);
-              res.send({
-                success: true,
-                status: 200,
-                message: "Data updated correctly."
-              });
+              sendComplete(res, RESPONSE_CODE.SUCCESS.CORRECT_UPDATE, countries);
+              debugEnd(methodName, countries.length, true);
+            
             }
             else {
-              res.send({
-                success: true,
-                status: 400,
-                message: "Data already updated."
-              });
+              sendComplete(res, RESPONSE_CODE.SUCCESS.ALREADY_UPDATED, countries);
+              debugEnd(methodName, countries.length, true);
             }
-
           });
-        console.log(`DEBUG END: updateData`);
       }
     });
-
   }
   catch (e) {
-    console.error(`CATCH: updateData : error > ${e}`);
-    return res.send({ success: false, message: e.message });
+    sendError(res, RESPONSE_CODE.ERROR.SERVER_ERROR, err.message)
+    debugCatch(methodName, e.message)
   }
 }
 
+function extractCountryData(json, item, country, continent) {
+  for (var isoCode in json) {
+    item = json[isoCode];
+    if (item.continent == CONST.EUROPE.NAME) {
+
+      justUpdate = !(docs.length == 0);
+
+      !justUpdate
+        ? country = setCountryData(item, continent, CONST.DEFAULT.DATE, false)
+        : country = setCountryData(item, continent, docs[0]._doc.lastUpdate, true);
+
+      if (!justUpdate) {
+        lastUpdateContinent == null
+          ? lastUpdateContinent = country.lastUpdate
+          : lastUpdateContinent < country.lastUpdate
+            ? lastUpdateContinent = country.lastUpdate
+            : null;
+      }
+    }
+  }
+  return { item, country };
+}
 
 function setCountryData(item, continent, lastUpdate, onlyUpdates) {
   try {
