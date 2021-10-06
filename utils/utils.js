@@ -8,5 +8,40 @@ exports.CONST = {
     },
     DEFAULT: {
         DATE: "1900-01-01"
+    },
+    METHODS: {
+        GET_EUROPE_DAILY_DATA: "getEuropeDailyData",
+        GET_ALL_COUNTRY_INFO: "getAllCountryInfo",
+        GET_COUNTRY_INFO: "getCountryInfo",
     }
+}
+
+const debug = (message, isError) => {
+    !isError
+        ? console.log(message)
+        : console.error(message)
+}
+
+exports.debugStart = (methodName, data, noStringify) => {
+    noStringify
+        ? debug(`DEBUG START: ${methodName} ${data}`)
+        : debug(`DEBUG START: ${methodName} ${JSON.stringify(data, null, 1)}`)
+}
+
+exports.debugEnd = (methodName, data, noStringify) => {
+    noStringify
+        ? debug(`DEBUG END: ${methodName} > ${data}`)
+        : debug(`DEBUG END: ${methodName} > ${JSON.stringify(data, null, 1)}`)
+}
+
+exports.debugError = (methodName, data, noStringify) => {
+    noStringify
+        ? debug(`DEBUG ERROR: ${methodName} ${data}`, true)
+        : debug(`DEBUG ERROR: ${methodName} ${JSON.stringify(data, null, 1)}`, true)
+}
+
+exports.debugCatch = (methodName, data, noStringify) => {
+    noStringify
+        ? debug(`DEBUG CATCH: ${methodName} ${data}`, true)
+        : debug(`DEBUG CATCH: ${methodName} ${JSON.stringify(data, null, 1)}`, true)
 }

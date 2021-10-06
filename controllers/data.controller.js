@@ -7,146 +7,128 @@ const DailyDataScheme = require('../models/dailyData.model');
 const DailyData = mongoose.model("DailyData", DailyDataScheme);
 const kmeans = require('node-kmeans');
 
-const { CONST } = require("../utils/utils");
+const { CONST, debugStart, debugEnd, debugCatch, debugError } = require("../utils/utils");
+const { unwindAndMatch, unwindAndMatchByDateAndName } = require("../utils/mongoHandler");
+const { sendHandler, RESPONSE_CODE, sendComplete, sendError } = require("../utils/sendHandler");
+const { AGGREGATION } = require("../utils/aggregation");
 
 exports.getCountryInfo = (req, res) => {
+  let methodName = CONST.METHODS.GET_COUNTRY_INFO
   try {
-    console.log(`DEBUG START: getCountryInfo'`);
+    debugStart(methodName, req.body)
 
     var countryId = req.countryId;
     Country.findById({ _id: countryId })
       .exec((err, country) => {
         if (!err) {
-          res.send({
-            success: true,
-            status: 200,
-            data: country._doc,
-          });
+          debugEnd(methodName, country.length)
+          sendComplete(res, RESPONSE_CODE.SUCCESS.OK, country._doc);
         }
         else {
-          console.error(`ERROR: getCountryInfo : country error > ${JSON.stringify(err)}`);
-          res.send({ success: false, message: err });
+          sendError(res, RESPONSE_CODE.ERROR.SERVER_ERROR, err.message)
+          debugError(methodName, err)
         }
       });
-    console.log(`DEBUG END: getCountryInfo`);
   }
   catch (e) {
-    console.error(`CATCH: getCountryInfo : country error > ${e}`);
-    return res.send({ success: false, message: e.message });
+    sendError(res, RESPONSE_CODE.ERROR.SERVER_ERROR, err.message)
+    debugCatch(methodName, e.message)
   }
 
 };
 
 exports.getAllCountryInfo = (req, res) => {
+  let methodName = CONST.METHODS.GET_ALL_COUNTRY_INFO;
   try {
-    console.log(`DEBUG START: getAllCountryInfo ${JSON.stringify(req.body, null, 1)}`);
+    debugStart(methodName, req.body)
+    let matchingCondition = {
+      from: new Date(req.body.from),
+      to: new Date(req.body.to)
+    }
+
+    Country.aggregate(
+      unwindAndMatch(AGGREGATION.ALL_COUNTRY_INFO, matchingCondition))
+      .exec((err, countries) => {
+        if (!err) {
+          sendComplete(res, RESPONSE_CODE.SUCCESS.OK, countries)
+          debugEnd(methodName, countries.length, true)
+        }
+        else {
+          sendError(res, RESPONSE_CODE.ERROR.SERVER_ERROR, err.message)
+          debugError(methodName, err)
+        }
+      });
+  }
+  catch (e) {
+    sendError(res, RESPONSE_CODE.ERROR.SERVER_ERROR, err.message)
+    debugCatch(methodName, e.message)
+  }
+};
+
+// TODO
+exports.getEuropeDailyData = (req, res) => {
+  let methodName = CONST.METHODS.GET_EUROPE_DAILY_DATA;
+  try {
+    debugStart(methodName, req.body)
+
     let from = new Date(req.body.from);
     let to = new Date(req.body.to);
 
-    Country.aggregate(
-      [
-        {
-          $unwind: {
-            path: '$data',
-            includeArrayIndex: 'string',
-            preserveNullAndEmptyArrays: false
-          }
-        },
-        {
-          $match: {
-            "data.date": { $gte: from, $lte: to }
-          }
-        },
-        {
-          $group: {
-            _id: '$name',
-            total_cases: { $sum: '$data.new_cases' },
-            total_vaccinations: { $sum: '$data.new_vaccinations_smoothed' }, // not every countries saves data daily
-            population: { $first: '$population' },
-            name: { $first: "$name" }
-          },
-        },
-      ]
-    ).exec((err, countries) => {
+
+    Country.aggregate(AGGREGATION.EUROPE_DAILY).exec((err, countries) => {
       if (!err) {
         res.send({
           success: true,
           status: 200,
           data: countries,
         });
-        //console.log(`DEBUG END: getAllCountryInfo ${JSON.stringify(countries, null, 2)}`);
-        console.log(`DEBUG END: getAllCountryInfo ${countries.length}`);
+        debugEnd(methodName, countries.length, true)
       }
       else {
-        console.error(`ERROR: getAllCountryInfo : country error > ${JSON.stringify(err)}`);
+        debugError(methodName, err);
         res.send({ success: false, message: err });
       }
     });
 
   }
-  catch (e) {
-    console.error(`CATCH: getAllCountryInfo : country error > ${e}`);
-    return res.send({ success: false, message: e.message });
+  catch (error) {
+    debugCatch(methodName, error);
+    return res.send({ success: false, message: error.message });
   }
 
 };
+
 
 exports.getSelectedCountriesInfo = (req, res) => {
   try {
-    console.log(`DEBUG START: getSelectedCountriesInfo ${JSON.stringify(req.body, null, 1)}`);
-    let from = new Date(req.body.from);
-    let to = new Date(req.body.to);
-    let selectedCountries = req.body.selectedCountries;
-    
+    debugStart(methodName, req.body)
+
+    let matchingCondition = {
+      from: new Date(req.body.from),
+      to: new Date(req.body.to),
+      namesList: req.body.selectedCountries
+    }
+
     Country.aggregate(
-      [
-        {
-          $unwind: {
-            path: '$data',
-            includeArrayIndex: 'string',
-            preserveNullAndEmptyArrays: false
-          }
-        },
-        {
-          $match: {
-            "data.date": { $gte: from, $lte: to },
-            "name": { $in: selectedCountries },
-          }
-          
-        },
-        {
-          $group: {
-            _id: "$name" ,  
-            dailyData: { $addToSet: "$data" }
-          },
-        },
-
-
-      ]
-    ).exec((err, countries) => {
-      if (!err) {
-        res.send({
-          success: true,
-          status: 200,
-          data: countries,
-        });
-        console.log(`DEBUG END: getSelectedCountriesInfo ${JSON.stringify(countries.length, null, 2)}`);
-        //console.log(`DEBUG END: getSelectedCountriesInfo ${countries.length}`);
-      }
-      else {
-        console.error(`ERROR: getSelectedCountriesInfo : country error > ${JSON.stringify(err)}`);
-        res.send({ success: false, message: err });
-      }
-    });
+      unwindAndMatchByDateAndName(AGGREGATION.GET_SELECTED_COUNTRY_INFO, matchingCondition))
+      .exec((err, countries) => {
+        if (!err) {
+          sendComplete(res, RESPONSE_CODE.SUCCESS.OK, countries);
+          debugEnd(methodName, countries.length, true);
+        }
+        else {
+          sendError(res, RESPONSE_CODE.ERROR.SERVER_ERROR, err.message)
+          debugError(methodName, err.message)
+        }
+      });
 
   }
   catch (e) {
-    console.error(`CATCH: getSelectedCountriesInfo : country error > ${e}`);
-    return res.send({ success: false, message: e.message });
+    sendError(res, RESPONSE_CODE.ERROR.SERVER_ERROR, err.message)
+    debugCatch(methodName, e.message)
   }
 
 };
-
 
 exports.updateData = async (req, res) => {
   try {
@@ -248,8 +230,8 @@ function setCountryData(item, continent, lastUpdate, onlyUpdates) {
     filteredDate.map((data) => {
       let timestamp = data.date;
       countryLastUpdate == null ? countryLastUpdate = timestamp : countryLastUpdate < timestamp ? countryLastUpdate = timestamp : null;
-      
-      updateDailyData(dailyData, timestamp, data); 
+
+      updateDailyData(dailyData, timestamp, data);
       updateVaccinatedData(data, lastVaccinatedData);
 
       country.data.push(dailyData);
