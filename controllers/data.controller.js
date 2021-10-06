@@ -99,7 +99,8 @@ exports.getEuropeDailyData = (req, res) => {
 };
 
 
-exports.getSelectedCountriesInfo = (req, res) => {
+exports.getSelectedCountriesInfo = (req, res) => {\
+  let methodName = CONST.METHODS.GET_SELECTED_COUNTRIES_INFO
   try {
     debugStart(methodName, req.body)
 

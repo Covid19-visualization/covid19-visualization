@@ -13,6 +13,7 @@ exports.CONST = {
         GET_EUROPE_DAILY_DATA: "getEuropeDailyData",
         GET_ALL_COUNTRY_INFO: "getAllCountryInfo",
         GET_COUNTRY_INFO: "getCountryInfo",
+        GET_SELECTED_COUNTRIES_INFO: "getSelectedCountriesInfo"
     }
 }
 
