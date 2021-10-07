@@ -10,8 +10,7 @@
   "author": "io",
   "license": "ISC",
   "devDependencies": {
-    "gulp": "^4.0.2",
-    "nodemon": "^2.0.1"
+    "gulp": "^4.0.2"
   },
   "dependencies": {
     "bcrypt": "^4.0.1",
@@ -27,6 +26,7 @@
     "mongoose": "^5.12.3",
     "mongoose-paginate": "^5.0.3",
     "multer": "^1.4.2",
+    "node-kmeans": "^1.1.9",
     "passport": "^0.4.1",
     "passport-local": "^1.0.0",
     "randomstring": "^1.1.5",

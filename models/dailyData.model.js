@@ -33,6 +33,9 @@ var DailyDataSchema = new Schema({
     tests_per_case: Number,
     tests_units: String,
     stringency_index: Number,
+    new_vaccinations_smoothed: Number,
+    people_fully_vaccinated: Number,
+    people_vaccinated: Number,
 }).plugin(mongoosePaginate);
 
 

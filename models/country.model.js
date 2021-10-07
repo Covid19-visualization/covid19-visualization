@@ -10,6 +10,8 @@ var CountrySchema = new Schema({
   continent: String,
   population: { type: Number, default: 0 },
   total_cases: { type: Number, default: 0},
+  people_fully_vaccinated: { type: Number, default: 0},
+  people_vaccinated: { type: Number, default: 0},
   population_density: { type: Number, default: 0 },
   median_age:{ type: Number, default: 0 },
   age_65_older: { type: Number, default: 0 },

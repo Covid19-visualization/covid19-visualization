@@ -18,6 +18,8 @@ var ContinentSchema = new Schema({
   hospital_beds_per_thousand: { type: Number, default: 0 },
   life_expectancy: { type: Number, default: 0 },
   human_development_index: { type: Number, default: 0 },
+  total_cases: { type: Number, default: 0 },
+  total_vaccinations: { type: Number, default: 0 },
   lastUpdate: Date,
 }).plugin(mongoosePaginate);
 
