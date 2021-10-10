@@ -34,7 +34,7 @@ exports.unwindAndMatchByDateAndName = (groupBy, matchCondition) => {
     let matchBy = {
         $match: {
             "data.date": { $gte: matchCondition.from, $lte: matchCondition.to },
-            "name": {$in: matchCondition.namesList },
+            "name": {$in: matchCondition.selectedCountries },
         }
     }
     return unwindAndMatch(groupBy, matchBy)

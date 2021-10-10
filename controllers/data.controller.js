@@ -8,7 +8,7 @@ const DailyData = mongoose.model("DailyData", DailyDataScheme);
 const kmeans = require('node-kmeans');
 
 const { CONST, debugStart, debugEnd, debugCatch, debugError } = require("../utils/utils");
-const { unwindAndMatch, unwindAndMatchByDateAndName } = require("../utils/mongoHandler");
+const { unwindAndMatchByDateAndName, unwindAndMatchByDate } = require("../utils/mongoHandler");
 const { sendHandler, RESPONSE_CODE, sendComplete, sendError } = require("../utils/sendHandler");
 const { AGGREGATION } = require("../utils/aggregation");
 
@@ -47,7 +47,7 @@ exports.getAllCountryInfo = (req, res) => {
     }
 
     Country.aggregate(
-      unwindAndMatch(AGGREGATION.ALL_COUNTRY_INFO, matchingCondition))
+      unwindAndMatchByDate(AGGREGATION.ALL_COUNTRY_INFO, matchingCondition))
       .exec((err, countries) => {
         if (!err) {
           sendComplete(res, RESPONSE_CODE.SUCCESS.OK, countries)
@@ -55,40 +55,38 @@ exports.getAllCountryInfo = (req, res) => {
         }
         else {
           sendError(res, RESPONSE_CODE.ERROR.SERVER_ERROR, err.message)
-          debugError(methodName, err)
+          debugError(methodName, err);
         }
       });
   }
   catch (e) {
-    sendError(res, RESPONSE_CODE.ERROR.SERVER_ERROR, err.message)
-    debugCatch(methodName, e.message)
+    sendError(res, RESPONSE_CODE.ERROR.SERVER_ERROR, e.message)
+    debugCatch(methodName, e)
   }
 };
 
-// TODO
 exports.getEuropeDailyData = (req, res) => {
   let methodName = CONST.METHODS.GET_EUROPE_DAILY_DATA;
   try {
     debugStart(methodName, req.body)
 
-    let from = new Date(req.body.from);
-    let to = new Date(req.body.to);
+    let matchingCondition = {
+      from: new Date(req.body.from),
+      to: new Date(req.body.to),
+    }
 
-
-    Country.aggregate(AGGREGATION.EUROPE_DAILY).exec((err, countries) => {
-      if (!err) {
-        res.send({
-          success: true,
-          status: 200,
-          data: countries,
-        });
-        debugEnd(methodName, countries.length, true)
-      }
-      else {
-        debugError(methodName, err);
-        res.send({ success: false, message: err });
-      }
-    });
+    Country.aggregate(
+      unwindAndMatchByDate(AGGREGATION.EUROPE_DAILY, matchingCondition))
+      .exec((err, countries) => {
+        if (!err) {
+          sendComplete(res, RESPONSE_CODE.SUCCESS.OK, countries)
+          debugEnd(methodName, countries.length, true)
+        }
+        else {
+          debugError(methodName, err);
+          res.send({ success: false, message: err });
+        }
+      });
 
   }
   catch (error) {
@@ -99,7 +97,8 @@ exports.getEuropeDailyData = (req, res) => {
 };
 
 
-exports.getSelectedCountriesInfo = (req, res) => {\
+exports.getSelectedCountriesInfo = (req, res) => {
+
   let methodName = CONST.METHODS.GET_SELECTED_COUNTRIES_INFO
   try {
     debugStart(methodName, req.body)
@@ -107,26 +106,39 @@ exports.getSelectedCountriesInfo = (req, res) => {\
     let matchingCondition = {
       from: new Date(req.body.from),
       to: new Date(req.body.to),
-      namesList: req.body.selectedCountries
+      selectedCountries: req.body.selectedCountries
     }
+
 
     Country.aggregate(
       unwindAndMatchByDateAndName(AGGREGATION.GET_SELECTED_COUNTRY_INFO, matchingCondition))
-      .exec((err, countries) => {
+      .exec((err, selectedData) => {
         if (!err) {
-          sendComplete(res, RESPONSE_CODE.SUCCESS.OK, countries);
-          debugEnd(methodName, countries.length, true);
+          Country.aggregate(
+            unwindAndMatchByDate(AGGREGATION.EUROPE_DAILY, matchingCondition))
+            .exec((error, europeData) => {
+              if (!error) {
+                let result = [{_id: CONST.SELECTED_COUNTRIES.ID, dailyData: selectedData}, {_id: CONST.EUROPE.ID, dailyData: europeData}];
+
+                sendComplete(res, RESPONSE_CODE.SUCCESS.OK, result)
+                debugEnd(methodName, result.length, true)
+              }
+              else {
+                debugError(methodName, error);
+                res.send({ success: false, message: error });
+              }
+            });
         }
         else {
           sendError(res, RESPONSE_CODE.ERROR.SERVER_ERROR, err.message)
-          debugError(methodName, err.message)
+          debugError(methodName, err)
         }
       });
 
   }
   catch (e) {
     sendError(res, RESPONSE_CODE.ERROR.SERVER_ERROR, err.message)
-    debugCatch(methodName, e.message)
+    debugCatch(methodName, e)
   }
 
 };
@@ -149,13 +161,31 @@ exports.updateData = async (req, res) => {
           .then((json) => {
             let item, continent, country;
             continent = Continent();
-            ({ item, country } = extractCountryData(json, item, country, continent));
+            for (var isoCode in json) {
+              item = json[isoCode];
+              if (item.continent == CONST.EUROPE.NAME) {
+
+                justUpdate = !(docs.length == 0);
+
+                !justUpdate
+                  ? country = setCountryData(item, continent, CONST.DEFAULT.DATE, false)
+                  : country = setCountryData(item, continent, docs[0]._doc.lastUpdate, true);
+
+                if (!justUpdate) {
+                  lastUpdateContinent == null
+                    ? lastUpdateContinent = country.lastUpdate
+                    : lastUpdateContinent < country.lastUpdate
+                      ? lastUpdateContinent = country.lastUpdate
+                      : null;
+                }
+              }
+            }
 
             if (!justUpdate) {
               updateContinentStatistics(continent, lastUpdateContinent);
               sendComplete(res, RESPONSE_CODE.SUCCESS.CORRECT_UPDATE, countries);
               debugEnd(methodName, countries.length, true);
-            
+
             }
             else {
               sendComplete(res, RESPONSE_CODE.SUCCESS.ALREADY_UPDATED, countries);
@@ -167,31 +197,8 @@ exports.updateData = async (req, res) => {
   }
   catch (e) {
     sendError(res, RESPONSE_CODE.ERROR.SERVER_ERROR, err.message)
-    debugCatch(methodName, e.message)
+    debugCatch(methodName, e)
   }
-}
-
-function extractCountryData(json, item, country, continent) {
-  for (var isoCode in json) {
-    item = json[isoCode];
-    if (item.continent == CONST.EUROPE.NAME) {
-
-      justUpdate = !(docs.length == 0);
-
-      !justUpdate
-        ? country = setCountryData(item, continent, CONST.DEFAULT.DATE, false)
-        : country = setCountryData(item, continent, docs[0]._doc.lastUpdate, true);
-
-      if (!justUpdate) {
-        lastUpdateContinent == null
-          ? lastUpdateContinent = country.lastUpdate
-          : lastUpdateContinent < country.lastUpdate
-            ? lastUpdateContinent = country.lastUpdate
-            : null;
-      }
-    }
-  }
-  return { item, country };
 }
 
 function setCountryData(item, continent, lastUpdate, onlyUpdates) {
@@ -240,8 +247,8 @@ function setCountryData(item, continent, lastUpdate, onlyUpdates) {
     else return newData;
 
   } catch (e) {
-    console.error(`CATCH: updateData : error > ${e}`);
-    return res.send({ success: false, message: e.message });
+    sendError(res, RESPONSE_CODE.ERROR.SERVER_ERROR, err.message)
+    debugCatch(methodName, e)
   }
 
 }

@@ -4,8 +4,10 @@ var exports = (module.exports = {});
 exports.CONST = {
     EUROPE: {
         NUM_COUNTRIES: 51,
-        NAME: "Europe"
+        NAME: "Europe",
+        ID: "EU"
     },
+    SELECTED_COUNTRIES: { NAME: "Selected Countries", ID: "SC"},
     DEFAULT: {
         DATE: "1900-01-01",
         COVID_UPDATE_URL: "https://covid.ourworldindata.org/data/owid-covid-data.json"
@@ -45,6 +47,6 @@ exports.debugError = (methodName, data, noStringify) => {
 
 exports.debugCatch = (methodName, data, noStringify) => {
     noStringify
-        ? debug(`DEBUG CATCH: ${methodName} ${data}`, true)
-        : debug(`DEBUG CATCH: ${methodName} ${JSON.stringify(data, null, 1)}`, true)
+        ? debug(`DEBUG CATCH: ${methodName} ${data.message}`, true)
+        : debug(`DEBUG CATCH: ${methodName} ${JSON.stringify(data.message, null, 1)}`, true)
 }
