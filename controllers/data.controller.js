@@ -7,166 +7,159 @@ const DailyDataScheme = require('../models/dailyData.model');
 const DailyData = mongoose.model("DailyData", DailyDataScheme);
 const kmeans = require('node-kmeans');
 
-const { CONST } = require("../utils/utils");
+const { CONST, debugStart, debugEnd, debugCatch, debugError } = require("../utils/utils");
+const { unwindAndMatchByDateAndName, unwindAndMatchByDate } = require("../utils/mongoHandler");
+const { sendHandler, RESPONSE_CODE, sendComplete, sendError } = require("../utils/sendHandler");
+const { AGGREGATION } = require("../utils/aggregation");
 
 exports.getCountryInfo = (req, res) => {
+  let methodName = CONST.METHODS.GET_COUNTRY_INFO
   try {
-    console.log(`DEBUG START: getCountryInfo'`);
+    debugStart(methodName, req.body)
 
     var countryId = req.countryId;
     Country.findById({ _id: countryId })
       .exec((err, country) => {
         if (!err) {
-          res.send({
-            success: true,
-            status: 200,
-            data: country._doc,
-          });
+          debugEnd(methodName, country.length)
+          sendComplete(res, RESPONSE_CODE.SUCCESS.OK, country._doc);
         }
         else {
-          console.error(`ERROR: getCountryInfo : country error > ${JSON.stringify(err)}`);
-          res.send({ success: false, message: err });
+          sendError(res, RESPONSE_CODE.ERROR.SERVER_ERROR, err.message)
+          debugError(methodName, err)
         }
       });
-    console.log(`DEBUG END: getCountryInfo`);
   }
   catch (e) {
-    console.error(`CATCH: getCountryInfo : country error > ${e}`);
-    return res.send({ success: false, message: e.message });
+    sendError(res, RESPONSE_CODE.ERROR.SERVER_ERROR, err.message)
+    debugCatch(methodName, e.message)
   }
 
 };
 
 exports.getAllCountryInfo = (req, res) => {
+  let methodName = CONST.METHODS.GET_ALL_COUNTRY_INFO;
   try {
-    console.log(`DEBUG START: getAllCountryInfo ${JSON.stringify(req.body, null, 1)}`);
-    let from = new Date(req.body.from);
-    let to = new Date(req.body.to);
+    debugStart(methodName, req.body)
+    let matchingCondition = {
+      from: new Date(req.body.from),
+      to: new Date(req.body.to)
+    }
 
     Country.aggregate(
-      [
-        {
-          $unwind: {
-            path: '$data',
-            includeArrayIndex: 'string',
-            preserveNullAndEmptyArrays: false
-          }
-        },
-        {
-          $match: {
-            "data.date": { $gte: from, $lte: to }
-          }
-        },
-        {
-          $group: {
-            _id: '$name',
-            total_cases: { $sum: '$data.new_cases' },
-            total_vaccinations: { $sum: '$data.new_vaccinations_smoothed' }, // not every countries saves data daily
-            population: { $first: '$population' },
-            name: { $first: "$name" }
-          },
-        },
-      ]
-    ).exec((err, countries) => {
-      if (!err) {
-        res.send({
-          success: true,
-          status: 200,
-          data: countries,
-        });
-        //console.log(`DEBUG END: getAllCountryInfo ${JSON.stringify(countries, null, 2)}`);
-        console.log(`DEBUG END: getAllCountryInfo ${countries.length}`);
-      }
-      else {
-        console.error(`ERROR: getAllCountryInfo : country error > ${JSON.stringify(err)}`);
-        res.send({ success: false, message: err });
-      }
-    });
-
+      unwindAndMatchByDate(AGGREGATION.ALL_COUNTRY_INFO, matchingCondition))
+      .exec((err, countries) => {
+        if (!err) {
+          sendComplete(res, RESPONSE_CODE.SUCCESS.OK, countries)
+          debugEnd(methodName, countries.length, true)
+        }
+        else {
+          sendError(res, RESPONSE_CODE.ERROR.SERVER_ERROR, err.message)
+          debugError(methodName, err);
+        }
+      });
   }
   catch (e) {
-    console.error(`CATCH: getAllCountryInfo : country error > ${e}`);
-    return res.send({ success: false, message: e.message });
+    sendError(res, RESPONSE_CODE.ERROR.SERVER_ERROR, e.message)
+    debugCatch(methodName, e)
+  }
+};
+
+exports.getEuropeDailyData = (req, res) => {
+  let methodName = CONST.METHODS.GET_EUROPE_DAILY_DATA;
+  try {
+    debugStart(methodName, req.body)
+
+    let matchingCondition = {
+      from: new Date(req.body.from),
+      to: new Date(req.body.to),
+    }
+
+    Country.aggregate(
+      unwindAndMatchByDate(AGGREGATION.EUROPE_DAILY, matchingCondition))
+      .exec((err, countries) => {
+        if (!err) {
+          sendComplete(res, RESPONSE_CODE.SUCCESS.OK, countries)
+          debugEnd(methodName, countries.length, true)
+        }
+        else {
+          debugError(methodName, err);
+          res.send({ success: false, message: err });
+        }
+      });
+
+  }
+  catch (error) {
+    debugCatch(methodName, error);
+    return res.send({ success: false, message: error.message });
   }
 
 };
+
 
 exports.getSelectedCountriesInfo = (req, res) => {
+
+  let methodName = CONST.METHODS.GET_SELECTED_COUNTRIES_INFO
   try {
-    console.log(`DEBUG START: getSelectedCountriesInfo ${JSON.stringify(req.body, null, 1)}`);
-    let from = new Date(req.body.from);
-    let to = new Date(req.body.to);
-    let selectedCountries = req.body.selectedCountries;
-    
+    debugStart(methodName, req.body)
+
+    let matchingCondition = {
+      from: new Date(req.body.from),
+      to: new Date(req.body.to),
+      selectedCountries: req.body.selectedCountries
+    }
+
+
     Country.aggregate(
-      [
-        {
-          $unwind: {
-            path: '$data',
-            includeArrayIndex: 'string',
-            preserveNullAndEmptyArrays: false
-          }
-        },
-        {
-          $match: {
-            "data.date": { $gte: from, $lte: to },
-            "name": { $in: selectedCountries },
-          }
-          
-        },
-        {
-          $group: {
-            _id: "$name" ,  
-            dailyData: { $addToSet: "$data" }
-          },
-        },
+      unwindAndMatchByDateAndName(AGGREGATION.GET_SELECTED_COUNTRY_INFO, matchingCondition))
+      .exec((err, selectedData) => {
+        if (!err) {
+          Country.aggregate(
+            unwindAndMatchByDate(AGGREGATION.EUROPE_DAILY, matchingCondition))
+            .exec((error, europeData) => {
+              if (!error) {
+                let result = [{_id: CONST.SELECTED_COUNTRIES.ID, dailyData: selectedData}, {_id: CONST.EUROPE.ID, dailyData: europeData}];
 
-
-      ]
-    ).exec((err, countries) => {
-      if (!err) {
-        res.send({
-          success: true,
-          status: 200,
-          data: countries,
-        });
-        console.log(`DEBUG END: getSelectedCountriesInfo ${JSON.stringify(countries.length, null, 2)}`);
-        //console.log(`DEBUG END: getSelectedCountriesInfo ${countries.length}`);
-      }
-      else {
-        console.error(`ERROR: getSelectedCountriesInfo : country error > ${JSON.stringify(err)}`);
-        res.send({ success: false, message: err });
-      }
-    });
+                sendComplete(res, RESPONSE_CODE.SUCCESS.OK, result)
+                debugEnd(methodName, result.length, true)
+              }
+              else {
+                debugError(methodName, error);
+                res.send({ success: false, message: error });
+              }
+            });
+        }
+        else {
+          sendError(res, RESPONSE_CODE.ERROR.SERVER_ERROR, err.message)
+          debugError(methodName, err)
+        }
+      });
 
   }
   catch (e) {
-    console.error(`CATCH: getSelectedCountriesInfo : country error > ${e}`);
-    return res.send({ success: false, message: e.message });
+    sendError(res, RESPONSE_CODE.ERROR.SERVER_ERROR, err.message)
+    debugCatch(methodName, e)
   }
 
 };
 
-
 exports.updateData = async (req, res) => {
+  let methodName = CONST.METHODS.UPDATE_DATA;
+  var lastUpdateContinent = null, justUpdate = false;
+
   try {
-    console.log(`DEBUG START: updateData`);
+    debugStart(methodName, req.body)
 
-    let url = "https://covid.ourworldindata.org/data/owid-covid-data.json"
-    let settings = { method: "Get" };
-    let item, continent, country;
-    var lastUpdateContinent = null;
-    var justUpdate = false;
-
-    continent = Continent.find({ name: 'Europe' }, async function (e, docs) {
+    continent = Continent.find({ name: CONST.EUROPE.NAME }, async function (e, docs) {
       if (e) {
-        console.error(`CATCH: updateData : error > ${e}`);
-        return res.send({ success: false, message: e.message });
+        sendError(res, RESPONSE_CODE.ERROR.SERVER_ERROR, err.message)
+        debugError(methodName, err.message)
       }
       else {
-        await fetch(url, settings)
+        await fetch(CONST.DEFAULT.COVID_UPDATE_URL, { method: "Get" })
           .then(res => res.json())
           .then((json) => {
+            let item, continent, country;
             continent = Continent();
             for (var isoCode in json) {
               item = json[isoCode];
@@ -190,32 +183,23 @@ exports.updateData = async (req, res) => {
 
             if (!justUpdate) {
               updateContinentStatistics(continent, lastUpdateContinent);
-              res.send({
-                success: true,
-                status: 200,
-                message: "Data updated correctly."
-              });
+              sendComplete(res, RESPONSE_CODE.SUCCESS.CORRECT_UPDATE, countries);
+              debugEnd(methodName, countries.length, true);
+
             }
             else {
-              res.send({
-                success: true,
-                status: 400,
-                message: "Data already updated."
-              });
+              sendComplete(res, RESPONSE_CODE.SUCCESS.ALREADY_UPDATED, countries);
+              debugEnd(methodName, countries.length, true);
             }
-
           });
-        console.log(`DEBUG END: updateData`);
       }
     });
-
   }
   catch (e) {
-    console.error(`CATCH: updateData : error > ${e}`);
-    return res.send({ success: false, message: e.message });
+    sendError(res, RESPONSE_CODE.ERROR.SERVER_ERROR, err.message)
+    debugCatch(methodName, e)
   }
 }
-
 
 function setCountryData(item, continent, lastUpdate, onlyUpdates) {
   try {
@@ -248,8 +232,8 @@ function setCountryData(item, continent, lastUpdate, onlyUpdates) {
     filteredDate.map((data) => {
       let timestamp = data.date;
       countryLastUpdate == null ? countryLastUpdate = timestamp : countryLastUpdate < timestamp ? countryLastUpdate = timestamp : null;
-      
-      updateDailyData(dailyData, timestamp, data); 
+
+      updateDailyData(dailyData, timestamp, data);
       updateVaccinatedData(data, lastVaccinatedData);
 
       country.data.push(dailyData);
@@ -263,8 +247,8 @@ function setCountryData(item, continent, lastUpdate, onlyUpdates) {
     else return newData;
 
   } catch (e) {
-    console.error(`CATCH: updateData : error > ${e}`);
-    return res.send({ success: false, message: e.message });
+    sendError(res, RESPONSE_CODE.ERROR.SERVER_ERROR, err.message)
+    debugCatch(methodName, e)
   }
 
 }
