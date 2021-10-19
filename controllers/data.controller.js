@@ -118,7 +118,6 @@ exports.getSelectedCountriesInfo = (req, res) => {
             unwindAndMatchByDate(AGGREGATION.EUROPE_DAILY, matchingCondition))
             .exec((error, europeData) => {
               if (!error) {
-                //DEBUG console.log(selectedData)
                 let result = [{_id: CONST.SELECTED_COUNTRIES.ID, dailyData: selectedData}, {_id: CONST.EUROPE.ID, dailyData: europeData}];
 
                 sendComplete(res, RESPONSE_CODE.SUCCESS.OK, result)

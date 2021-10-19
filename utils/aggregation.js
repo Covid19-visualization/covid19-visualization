@@ -37,7 +37,9 @@ exports.AGGREGATION = {
                 new_vaccinations_smoothed: { $sum: '$data.new_vaccinations_smoothed' },
                 
                 // For RADAR
-                population: { $first: '$population' },
+                name: { $first: "$name" },
+                population_density: { $first: '$population_density' },
+                life_expectancy: { $first: '$life_expectancy'},
                 gdp_per_capita: { $first: "$gdp_per_capita" },
                 extreme_poverty: { $first: "$extreme_poverty" },
                 human_development_index: { $first: "$human_development_index" }
