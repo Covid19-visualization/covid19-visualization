@@ -41,8 +41,13 @@ exports.AGGREGATION = {
                 population_density: { $push: '$population_density' },
                 life_expectancy: { $push: '$life_expectancy'},
                 gdp_per_capita: { $push: "$gdp_per_capita" },
-                extreme_poverty: { $push: "$extreme_poverty" },
-                human_development_index: { $push: "$human_development_index" }
+                //extreme_poverty: { $push: "$extreme_poverty" },
+                human_development_index: { $push: "$human_development_index" },
+                cardiovasc_death_rate: {$push: "$cardiovasc_death_rate"},
+                diabetes_prevalence: {$push: "$diabetes_prevalence"},
+                female_smokers: {$push: "$female_smokers"},
+                male_smokers: {$push: "$male_smokers"},
+                median_age: {$push: "$median_age"}
             },
         },
     ]
