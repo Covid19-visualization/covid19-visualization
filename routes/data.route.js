@@ -10,5 +10,7 @@ module.exports = function (app) {
     app.post('/data/updateData', data.updateData);                                             // update data
     app.post('/data/kmeansTest', data.kmeansTest);                                             // update data
 
+    app.delete('/data/deleteAll', data.deleteAll);
+
 };
 

@@ -183,13 +183,13 @@ exports.updateData = async (req, res) => {
 
             if (!justUpdate) {
               updateContinentStatistics(continent, lastUpdateContinent);
-              sendComplete(res, RESPONSE_CODE.SUCCESS.CORRECT_UPDATE, countries);
-              debugEnd(methodName, countries.length, true);
+              sendComplete(res, RESPONSE_CODE.SUCCESS.CORRECT_UPDATE, continent);
+              debugEnd(methodName, continent.length, true);
 
             }
             else {
-              sendComplete(res, RESPONSE_CODE.SUCCESS.ALREADY_UPDATED, countries);
-              debugEnd(methodName, countries.length, true);
+              sendComplete(res, RESPONSE_CODE.SUCCESS.ALREADY_UPDATED, continent);
+              debugEnd(methodName, continent.length, true);
             }
           });
       }
@@ -200,6 +200,38 @@ exports.updateData = async (req, res) => {
     debugCatch(methodName, e)
   }
 }
+
+exports.deleteAll = async (req, res) => {
+  let methodName = CONST.METHODS.DELETE_ALL;
+
+  try {
+    debugStart(methodName, req.body)
+    Continent.deleteMany({}, async (e, docs) => {
+      if(e){
+        sendError(res, RESPONSE_CODE.ERROR.SERVER_ERROR, e.message)
+        debugError(methodName, e.message)
+      }
+      else
+        console.log("Continent deleted")
+    });
+    Country.deleteMany({}, async (e, docs) => {
+      if(e){
+        sendError(res, RESPONSE_CODE.ERROR.SERVER_ERROR, e.message)
+        debugError(methodName, e.message)
+      }
+      else
+        console.log("Countries deleted")
+    });
+    sendComplete(res, RESPONSE_CODE.SUCCESS.OK, "Ok")
+    debugEnd(methodName, result.length, true)
+  }
+  catch (e) {
+    sendError(res, RESPONSE_CODE.ERROR.SERVER_ERROR, e.message)
+    debugCatch(methodName, e)
+  }
+}
+
+
 
 function setCountryData(item, continent, lastUpdate, onlyUpdates) {
   try {
@@ -270,35 +302,35 @@ function saveNewUpdateInCountry(country, filteredDate, lastVaccinatedData, count
 function updateCountryData(country, item) {
   country.name = item.location;
   country.continent = item.continent;
-  country.population = item.population;
-  country.population_density = item.population_density;
-  country.median_age = item.median_age;
-  country.age_65_older = item.age_65_older;
-  country.age_70_older = item.age_70_older;
-  country.gdp_per_capita = item.gdp_per_capita;
-  country.extreme_poverty = item.extreme_poverty;
-  country.cardiovasc_death_rate = item.cardiovasc_death_rate;
-  country.diabetes_prevalence = item.diabetes_prevalence;
-  country.female_smokers = item.female_smokers;
-  country.male_smokers = item.male_smokers;
-  country.hospital_beds_per_thousand = item.hospital_beds_per_thousand;
-  country.life_expectancy = item.life_expectancy;
-  country.human_development_index = item.human_development_index;
+  country.population = item.population != null ? item.population : 0;
+  country.population_density = item.population_density != null ? item.population_density : 0;
+  country.median_age = item.median_age != null ? item.median_age : 0;
+  country.age_65_older = item.age_65_older != null ? item.age_65_older : 0;
+  country.age_70_older = item.age_70_older != null ? item.age_70_older : 0;
+  country.gdp_per_capita = item.gdp_per_capita != null ? item.gdp_per_capita : 0;
+  country.extreme_poverty = item.extreme_poverty != null ? item.extreme_poverty : 0;
+  country.cardiovasc_death_rate = item.cardiovasc_death_rate != null ? item.cardiovasc_death_rate : 0;
+  country.diabetes_prevalence = item.diabetes_prevalence != null ? item.diabetes_prevalence : 0;
+  country.female_smokers = item.female_smokers != null ? item.female_smokers : 0;
+  country.male_smokers = item.male_smokers != null ? item.male_smokers : 0;
+  country.hospital_beds_per_thousand = item.hospital_beds_per_thousand != null ? item.hospital_beds_per_thousand : 0;
+  country.life_expectancy = item.life_expectancy != null ? item.life_expectancy : 0;
+  country.human_development_index = item.human_development_index != null ? item.human_development_index : 0;
 }
 
 function updateContinentData(continent, item) {
-  continent.population != null ? continent.population += item.population : null;
-  continent.population_density != null ? continent.population_density += item.population_density : null;
-  continent.median_age != null ? continent.median_age += item.median_age : null;
-  continent.gdp_per_capita != null ? continent.gdp_per_capita += item.gdp_per_capita : null;
-  continent.extreme_poverty != null ? continent.extreme_poverty += item.extreme_poverty : null;
-  continent.cardiovasc_death_rate != null ? continent.cardiovasc_death_rate += item.cardiovasc_death_rate : null;
-  continent.diabetes_prevalence != null ? continent.diabetes_prevalence += item.diabetes_prevalence : null;
-  continent.female_smokers != null ? continent.female_smokers += item.female_smokers : null;
-  continent.male_smokers != null ? continent.male_smokers += item.male_smokers : null;
-  continent.hospital_beds_per_thousand != null ? continent.hospital_beds_per_thousand += item.hospital_beds_per_thousand : null;
-  continent.life_expectancy != null ? continent.life_expectancy += item.life_expectancy : null;
-  continent.human_development_index != null ? continent.human_development_index += item.human_development_index : null;
+  continent.population != null ? continent.population += item.population : 0;
+  continent.population_density != null ? continent.population_density += item.population_density : 0;
+  continent.median_age != null ? continent.median_age += item.median_age : 0;
+  continent.gdp_per_capita != null ? continent.gdp_per_capita += item.gdp_per_capita : 0;
+  continent.extreme_poverty != null ? continent.extreme_poverty += item.extreme_poverty : 0;
+  continent.cardiovasc_death_rate != null ? continent.cardiovasc_death_rate += item.cardiovasc_death_rate : 0;
+  continent.diabetes_prevalence != null ? continent.diabetes_prevalence += item.diabetes_prevalence : 0;
+  continent.female_smokers != null ? continent.female_smokers += item.female_smokers : 0;
+  continent.male_smokers != null ? continent.male_smokers += item.male_smokers : 0;
+  continent.hospital_beds_per_thousand != null ? continent.hospital_beds_per_thousand += item.hospital_beds_per_thousand : 0;
+  continent.life_expectancy != null ? continent.life_expectancy += item.life_expectancy : 0;
+  continent.human_development_index != null ? continent.human_development_index += item.human_development_index : 0;
 }
 
 function updateDailyData(dailyData, timestamp, data) {
