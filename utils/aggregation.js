@@ -50,5 +50,10 @@ exports.AGGREGATION = {
                 median_age: {$push: "$median_age"}
             },
         },
+    ],
+    PCA_INFO: [
+        {
+            $group: {},
+        },
     ]
 }

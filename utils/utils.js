@@ -18,7 +18,8 @@ exports.CONST = {
         GET_COUNTRY_INFO: "getCountryInfo",
         GET_SELECTED_COUNTRIES_INFO: "getSelectedCountriesInfo",
         UPDATE_DATA: "updateData",
-        DELETE_ALL: "deleteAll"
+        DELETE_ALL: "deleteAll",
+        COMPUTE_PCA: "computePca"
     }
 }
 
