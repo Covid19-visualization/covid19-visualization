@@ -51,9 +51,4 @@ exports.AGGREGATION = {
             },
         },
     ],
-    PCA_INFO: [
-        {
-            $group: {},
-        },
-    ]
 }

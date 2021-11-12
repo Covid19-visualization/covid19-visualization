@@ -416,20 +416,23 @@ exports.computePca = (req, res) => {
       .exec((err, selectedData) => {
         if (!err) {
           let result = [{dailyData: selectedData}];
+
+          console.log(selectedData)
           
-          for(var i = 0; i< selectedData.length; i++){
+          for(var i = 0; i < selectedData.length; i++){
             insertPcaEntries(selectedData[i], pcaMatrix);
           }
           // Generate Eigen vectors
           var vectors = PCA.getEigenVectors(pcaMatrix);
+
           // Matrix of eigenvectors with the first two PCA (2D)
           var vectMat = math.matrix([vectors[0].vector, vectors[1].vector])
 
           var origMat = math.matrix(pcaMatrix)
+          console.log(origMat)
           
           // Dimensionality Reduction
           var resMat = math.multiply(origMat, math.transpose(vectMat))  
-          console.log(resMat)
  
           sendComplete(res, RESPONSE_CODE.SUCCESS.OK, resMat)
           debugEnd(methodName, result.length, true)
@@ -449,7 +452,6 @@ exports.computePca = (req, res) => {
 
 function insertPcaEntries(selectedData, pcaMatrix){
   let pcaEntry = [];
-  /*
   for(var z = 0; z < selectedData.data.length; z++){
     for(var i = 0; i < dbLabelStatic.length; i++){
       pcaEntry.push(selectedData[dbLabelStatic[i]])
@@ -462,11 +464,12 @@ function insertPcaEntries(selectedData, pcaMatrix){
     pcaMatrix.push(pcaEntry);
     pcaEntry = []
   }
-  */
+ /*
   for(var i = 0; i < dbLabelStatic.length; i++){
     pcaEntry.push(selectedData[dbLabelStatic[i]])
   }
   pcaMatrix.push(pcaEntry);
+  */
 }
 
 
