@@ -16,9 +16,6 @@ const { unwindAndMatchByDateAndName,
 const { sendHandler, RESPONSE_CODE, sendComplete, sendError } = require("../utils/sendHandler");
 const { AGGREGATION } = require("../utils/aggregation");
 
-const PCA = require('pca-js')
-const math = require('mathjs')
-
 exports.getCountryInfo = (req, res) => {
   let methodName = CONST.METHODS.GET_COUNTRY_INFO
   try {
@@ -395,15 +392,10 @@ function updateContinentStatistics(continent, lastUpdate) {
 exports.computePca = (req, res) => {
   let methodName = CONST.METHODS.COMPUTE_PCA
 
-  let pcaMatrix = []
-
   try {
     debugStart(methodName, req.body)
 
     let matchingCondition = {
-      /*
-      from: new Date("2021-01-04T10:58:21.932Z"),
-      to: new Date("2021-11-04T10:58:21.932Z"),*/
       from: new Date(req.body.from),
       to: new Date(req.body.to),
       selectedCountry: req.body.selectedCountries
@@ -416,25 +408,8 @@ exports.computePca = (req, res) => {
       .exec((err, selectedData) => {
         if (!err) {
           let result = [{dailyData: selectedData}];
-
-          console.log(selectedData)
-          
-          for(var i = 0; i < selectedData.length; i++){
-            insertPcaEntries(selectedData[i], pcaMatrix);
-          }
-          // Generate Eigen vectors
-          var vectors = PCA.getEigenVectors(pcaMatrix);
-
-          // Matrix of eigenvectors with the first two PCA (2D)
-          var vectMat = math.matrix([vectors[0].vector, vectors[1].vector])
-
-          var origMat = math.matrix(pcaMatrix)
-          console.log(origMat)
-          
-          // Dimensionality Reduction
-          var resMat = math.multiply(origMat, math.transpose(vectMat))  
  
-          sendComplete(res, RESPONSE_CODE.SUCCESS.OK, resMat)
+          sendComplete(res, RESPONSE_CODE.SUCCESS.OK, selectedData)
           debugEnd(methodName, result.length, true)
         }
         else {
@@ -449,29 +424,6 @@ exports.computePca = (req, res) => {
     debugCatch(methodName, e)
   }
 }
-
-function insertPcaEntries(selectedData, pcaMatrix){
-  let pcaEntry = [];
-  for(var z = 0; z < selectedData.data.length; z++){
-    for(var i = 0; i < dbLabelStatic.length; i++){
-      pcaEntry.push(selectedData[dbLabelStatic[i]])
-    }
-    for(var j = 0; j < dbLabelDaily.length; j++){
-      var value = selectedData.data[z][dbLabelDaily[j]]
-      pcaEntry.push(value ? value : 0)
-    }
-    //console.log(pcaEntry)
-    pcaMatrix.push(pcaEntry);
-    pcaEntry = []
-  }
- /*
-  for(var i = 0; i < dbLabelStatic.length; i++){
-    pcaEntry.push(selectedData[dbLabelStatic[i]])
-  }
-  pcaMatrix.push(pcaEntry);
-  */
-}
-
 
 exports.kmeansTest = (req, res) => {
   const data = [
