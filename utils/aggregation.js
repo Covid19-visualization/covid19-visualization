@@ -51,4 +51,15 @@ exports.AGGREGATION = {
             },
         },
     ],
+    GET_PEOPLE_VACCINATED: [
+        {
+            $group: {
+                _id: "$data.date",
+                population: { $first: "$population"},
+                name: { $first: "$name" },
+                people_vaccinated: {$first: '$data.people_vaccinated'},
+                people_fully_vaccinated: {$first: '$data.people_fully_vaccinated'}
+            },
+        },
+    ],
 }

@@ -19,7 +19,8 @@ exports.CONST = {
         GET_SELECTED_COUNTRIES_INFO: "getSelectedCountriesInfo",
         UPDATE_DATA: "updateData",
         DELETE_ALL: "deleteAll",
-        COMPUTE_PCA: "computePca"
+        COMPUTE_PCA: "computePca",
+        GET_PEOPLE_VACCINATED: "getPeopleVaccinated"
     }
 }
 

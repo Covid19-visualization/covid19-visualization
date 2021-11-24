@@ -425,6 +425,67 @@ exports.computePca = (req, res) => {
   }
 }
 
+function task(result,matchingCondition) {
+  return new Promise ( (resolve, reject) => {
+    Country.aggregate(
+      unwindAndMatchByDateAndName(AGGREGATION.GET_PEOPLE_VACCINATED, matchingCondition))
+      .exec((err, selectedData) => {
+        if (!err) {
+          let sortedResult = selectedData.sort( (a,b) => {
+            return a.people_vaccinated - b.people_vaccinated;
+          })
+          let last = sortedResult[sortedResult.length - 1]
+          result.push(last)
+          resolve(result);
+        }
+        else {
+          sendError(res, RESPONSE_CODE.ERROR.SERVER_ERROR, err.message)
+          debugError(methodName, err)
+        }
+      });
+  });
+}
+
+exports.getPeopleVaccinated = (req, res) => {
+  let methodName = CONST.METHODS.GET_PEOPLE_VACCINATED
+
+  try {
+    debugStart(methodName, req.body)
+    let to = new Date(req.body.to);
+    //let to = new Date("2021-11-23T00:00:00.000Z");
+
+    let from = new Date();
+    from.setDate(to.getDate() - 7);
+
+    let selectedCountries = req.body.selectedCountries;
+    //let selectedCountries = ["Italy", "Spain"]
+    let result = []
+    let promise = Promise.resolve();
+
+    selectedCountries.forEach(country => {
+      let matchingCondition = {
+        from: from,
+        to: to,
+        selectedCountries: new Array(country)
+      }
+      promise = promise.then(() => {
+        return task(result, matchingCondition);
+      });
+    })
+
+    promise.then(result => {
+      //All tasks completed
+      //console.log(result); 
+      sendComplete(res, RESPONSE_CODE.SUCCESS.OK, result)
+      debugEnd(methodName, result.length, true)
+    });
+  }
+  catch (e) {
+    sendError(res, RESPONSE_CODE.ERROR.SERVER_ERROR, e.message)
+    debugCatch(methodName, e)
+  }
+}
+
 exports.kmeansTest = (req, res) => {
   const data = [
     { 'country': 'Italy', 'positive': 91259, 'deaths': 60420, 'gdp': 1.4 },

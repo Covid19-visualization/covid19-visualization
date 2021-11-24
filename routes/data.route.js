@@ -12,6 +12,7 @@ module.exports = function (app) {
 
     app.delete('/data/deleteAll', data.deleteAll);                                             // delete all records on DB
     app.post('/data/computePca', data.computePca);
+    app.post('/data/getPeopleVaccinated', data.getPeopleVaccinated);
 
 };
 
