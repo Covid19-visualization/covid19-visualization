@@ -8,11 +8,11 @@ const DailyData = mongoose.model("DailyData", DailyDataScheme);
 const kmeans = require('node-kmeans');
 
 const { CONST, debugStart, debugEnd, debugCatch, debugError } = require("../utils/utils");
-const { unwindAndMatchByDateAndName, 
-        unwindAndMatchByDate, 
-        dbLabelStatic, 
-        dbLabelDaily, 
-        countriesNames } = require("../utils/mongoHandler");
+const { unwindAndMatchByDateAndName,
+  unwindAndMatchByDate,
+  dbLabelStatic,
+  dbLabelDaily,
+  countriesNames } = require("../utils/mongoHandler");
 const { sendHandler, RESPONSE_CODE, sendComplete, sendError } = require("../utils/sendHandler");
 const { AGGREGATION } = require("../utils/aggregation");
 
@@ -113,6 +113,10 @@ exports.getSelectedCountriesInfo = (req, res) => {
       selectedCountries: req.body.selectedCountries
     }
 
+    // The first of the following aggregate could be removed,
+    // essentially gives the sum of all data without considering the 
+    // name of the countries, the third instead do the same but considering
+    // each country separately.
     Country.aggregate(
       unwindAndMatchByDateAndName(AGGREGATION.GET_SELECTED_COUNTRY_INFO, matchingCondition))
       .exec((err, selectedData) => {
@@ -121,10 +125,25 @@ exports.getSelectedCountriesInfo = (req, res) => {
             unwindAndMatchByDate(AGGREGATION.EUROPE_DAILY, matchingCondition))
             .exec((error, europeData) => {
               if (!error) {
-                let result = [{_id: CONST.SELECTED_COUNTRIES.ID, dailyData: selectedData}, {_id: CONST.EUROPE.ID, dailyData: europeData}];
+                // This aggregate should replace the first one.
+                Country.aggregate(
+                  unwindAndMatchByDateAndName(AGGREGATION.GET_SELECTED_COUNTRY_DAILY_INFO, matchingCondition))
+                  .exec((_error, selectedFilteredData) => {
+                    if (!_error) {
+                      let result = [
+                        { _id: CONST.SELECTED_COUNTRIES.ID, dailyData: selectedData },
+                        { _id: CONST.EUROPE.ID, dailyData: europeData },
+                        { _id: CONST.SELECTED_COUNTRIES_BY_NAME.ID, dailyData: selectedFilteredData}
+                      ];
 
-                sendComplete(res, RESPONSE_CODE.SUCCESS.OK, result)
-                debugEnd(methodName, result.length, true)
+                      sendComplete(res, RESPONSE_CODE.SUCCESS.OK, result)
+                      debugEnd(methodName, result.length, true)
+                    }
+                    else {
+                      debugError(methodName, error);
+                      res.send({ success: false, message: error });
+                    }
+                  });
               }
               else {
                 debugError(methodName, error);
@@ -210,7 +229,7 @@ exports.deleteAll = async (req, res) => {
   try {
     debugStart(methodName, req.body)
     Continent.deleteMany({}, async (e, docs) => {
-      if(e){
+      if (e) {
         sendError(res, RESPONSE_CODE.ERROR.SERVER_ERROR, e.message)
         debugError(methodName, e.message)
       }
@@ -218,7 +237,7 @@ exports.deleteAll = async (req, res) => {
         console.log("Continent deleted")
     });
     Country.deleteMany({}, async (e, docs) => {
-      if(e){
+      if (e) {
         sendError(res, RESPONSE_CODE.ERROR.SERVER_ERROR, e.message)
         debugError(methodName, e.message)
       }
@@ -402,13 +421,13 @@ exports.computePca = (req, res) => {
     }
 
     Country.find({
-      "name": matchingCondition.selectedCountry, 
+      "name": matchingCondition.selectedCountry,
       "data.date": { $gte: matchingCondition.from, $lte: matchingCondition.to }
     })
       .exec((err, selectedData) => {
         if (!err) {
-          let result = [{dailyData: selectedData}];
- 
+          let result = [{ dailyData: selectedData }];
+
           sendComplete(res, RESPONSE_CODE.SUCCESS.OK, selectedData)
           debugEnd(methodName, result.length, true)
         }

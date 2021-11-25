@@ -8,6 +8,7 @@ exports.CONST = {
         ID: "EU"
     },
     SELECTED_COUNTRIES: { NAME: "Selected Countries", ID: "SC"},
+    SELECTED_COUNTRIES_BY_NAME: { NAME: "Selected Countries By Name", ID: "SCBN"},
     DEFAULT: {
         DATE: "1900-01-01",
         COVID_UPDATE_URL: "https://covid.ourworldindata.org/data/owid-covid-data.json"
@@ -20,7 +21,8 @@ exports.CONST = {
         UPDATE_DATA: "updateData",
         DELETE_ALL: "deleteAll",
         COMPUTE_PCA: "computePca"
-    }
+    },
+    
 }
 
 const debug = (message, isError) => {
