@@ -13,7 +13,7 @@ exports.AGGREGATION = {
         {
             $group: {
                 _id: "$data.date",
-                new_cases: { $sum: '$data.new_cases' },
+                new_cases: { $sum: '$data.new_cases_smoothed' },
                 new_vaccinations_smoothed: { $sum: '$data.new_vaccinations_smoothed' },
             },
         },
@@ -22,7 +22,7 @@ exports.AGGREGATION = {
         {
             $group: {
                 _id: '$name',
-                total_cases: { $sum: '$data.new_cases' },
+                total_cases: { $sum: '$data.new_cases_smoothed' },
                 total_vaccinations: { $sum: '$data.new_vaccinations_smoothed' },
                 population: { $first: '$population' },
                 name: { $first: "$name" }
@@ -33,7 +33,7 @@ exports.AGGREGATION = {
         {
             $group: {
                 _id: "$data.date",
-                new_cases: { $sum: '$data.new_cases' },
+                new_cases: { $sum: '$data.new_cases_smoothed' },
                 new_vaccinations_smoothed: { $sum: '$data.new_vaccinations_smoothed' },
                 
                 // For RADAR
@@ -64,5 +64,17 @@ exports.AGGREGATION = {
     ],
     COMPUTE_PCA: [
         {},
+    ],
+    GET_SELECTED_COUNTRY_DAILY_INFO: [
+        {
+            $group: {
+                _id: {
+                    date: "$data.date",
+                    name: "$name",
+                },
+                new_cases: { $sum: '$data.new_cases_smoothed' },
+                new_vaccinations_smoothed: { $sum: '$data.new_vaccinations_smoothed' },  
+            },
+        },
     ],
 }
