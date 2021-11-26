@@ -388,6 +388,57 @@ function updateContinentStatistics(continent, lastUpdate) {
   continent.save();
 }
 
+/*
+exports.computePca = (req, res) => {
+  let methodName = CONST.METHODS.COMPUTE_PCA
+
+  try {
+    debugStart(methodName, req.body)
+
+    let matchingCondition = {
+      from: new Date("2021-11-22T00:00:00.000Z"),
+      //from: new Date(req.body.from),
+      to: new Date("2021-11-23T00:00:00.000Z"),
+      //to: new Date(req.body.to),
+      selectedCountries: ["Italy", "Spain"],
+      //selectedCountries: req.body.selectedCountries
+    }
+
+    let matchBy = {
+      $match: {
+          "data.date": { $gte: matchingCondition.from, $lte: matchingCondition.to },
+          "name": {$in: matchingCondition.selectedCountries },
+      }
+    };
+    
+    let groupBy = {
+      $group: {
+        _id: "$name"
+      }
+    }
+    Country.aggregate(
+      [AGGREGATION.UNWIND_DATA, matchBy, groupBy])
+      .exec((err, selectedData) => {
+        if (!err) {
+          let result = [{dailyData: selectedData}];
+ 
+          sendComplete(res, RESPONSE_CODE.SUCCESS.OK, selectedData)
+          debugEnd(methodName, result.length, true)
+        }
+        else {
+          sendError(res, RESPONSE_CODE.ERROR.SERVER_ERROR, err.message)
+          debugError(methodName, err)
+        }
+      });
+
+  }
+  catch (e) {
+    sendError(res, RESPONSE_CODE.ERROR.SERVER_ERROR, e.message)
+    debugCatch(methodName, e)
+  }
+}
+*/
+
 
 exports.computePca = (req, res) => {
   let methodName = CONST.METHODS.COMPUTE_PCA
@@ -445,6 +496,7 @@ function task(result,matchingCondition) {
       });
   });
 }
+
 
 exports.getPeopleVaccinated = (req, res) => {
   let methodName = CONST.METHODS.GET_PEOPLE_VACCINATED

@@ -62,4 +62,7 @@ exports.AGGREGATION = {
             },
         },
     ],
+    COMPUTE_PCA: [
+        {},
+    ],
 }
