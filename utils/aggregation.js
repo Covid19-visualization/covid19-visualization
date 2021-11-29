@@ -15,6 +15,7 @@ exports.AGGREGATION = {
                 _id: "$data.date",
                 new_cases: { $sum: '$data.new_cases_smoothed' },
                 new_vaccinations_smoothed: { $sum: '$data.new_vaccinations_smoothed' },
+                new_deaths: { $sum: '$data.new_deaths_smoothed'}
             },
         },
     ],
@@ -24,6 +25,7 @@ exports.AGGREGATION = {
                 _id: '$name',
                 total_cases: { $sum: '$data.new_cases_smoothed' },
                 total_vaccinations: { $sum: '$data.new_vaccinations_smoothed' },
+                total_new_deaths: { $sum: '$data.new_deaths_smoothed'},
                 population: { $first: '$population' },
                 name: { $first: "$name" }
             },
