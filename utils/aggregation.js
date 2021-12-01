@@ -15,6 +15,7 @@ exports.AGGREGATION = {
                 _id: "$data.date",
                 new_cases: { $sum: '$data.new_cases_smoothed' },
                 new_vaccinations_smoothed: { $sum: '$data.new_vaccinations_smoothed' },
+                new_deaths: { $sum: '$data.new_deaths_smoothed'},
 
                 population: {$sum: '$population'},
                 population_density: { $sum: '$population_density' },
@@ -27,7 +28,7 @@ exports.AGGREGATION = {
                 male_smokers: {$sum: "$male_smokers"},
                 median_age: {$sum: "$median_age"},
                 people_vaccinated: {$sum: '$data.people_vaccinated'},
-                people_fully_vaccinated: {$sum: '$data.people_fully_vaccinated'},
+                people_fully_vaccinated: {$sum: '$data.people_fully_vaccinated'}
             },
         },
     ],
@@ -37,6 +38,7 @@ exports.AGGREGATION = {
                 _id: '$name',
                 total_cases: { $sum: '$data.new_cases_smoothed' },
                 total_vaccinations: { $sum: '$data.new_vaccinations_smoothed' },
+                total_new_deaths: { $sum: '$data.new_deaths_smoothed'},
                 population: { $first: '$population' },
                 name: { $first: "$name" }
             },
