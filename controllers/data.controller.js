@@ -113,37 +113,26 @@ exports.getSelectedCountriesInfo = (req, res) => {
       selectedCountries: req.body.selectedCountries
     }
 
+    console.log(matchingCondition.selectedCountries)
     // The first of the following aggregate could be removed,
     // essentially gives the sum of all data without considering the 
     // name of the countries, the third instead do the same but considering
     // each country separately.
     Country.aggregate(
-      unwindAndMatchByDateAndName(AGGREGATION.GET_SELECTED_COUNTRY_INFO, matchingCondition))
-      .exec((err, selectedData) => {
-        if (!err) {
+      unwindAndMatchByDate(AGGREGATION.EUROPE_DAILY, matchingCondition))
+      .exec((error, europeData) => {
+        if (!error) {
+          // This aggregate should replace the first one.
           Country.aggregate(
-            unwindAndMatchByDate(AGGREGATION.EUROPE_DAILY, matchingCondition))
-            .exec((error, europeData) => {
-              if (!error) {
-                // This aggregate should replace the first one.
-                Country.aggregate(
-                  unwindAndMatchByDateAndName(AGGREGATION.GET_SELECTED_COUNTRY_DAILY_INFO, matchingCondition))
-                  .exec((_error, selectedFilteredData) => {
-                    if (!_error) {
-                      let result = [
-                        { _id: CONST.SELECTED_COUNTRIES.ID, dailyData: selectedData },
-                        { _id: CONST.EUROPE.ID, dailyData: europeData },
-                        { _id: CONST.SELECTED_COUNTRIES_BY_NAME.ID, dailyData: selectedFilteredData}
-                      ];
-
-                      sendComplete(res, RESPONSE_CODE.SUCCESS.OK, result)
-                      debugEnd(methodName, result.length, true)
-                    }
-                    else {
-                      debugError(methodName, error);
-                      res.send({ success: false, message: error });
-                    }
-                  });
+            unwindAndMatchByDateAndName(AGGREGATION.GET_SELECTED_COUNTRY_DAILY_INFO, matchingCondition))
+            .exec((_error, selectedFilteredData) => {
+              if (!_error) {
+                let result = [
+                  { _id: CONST.EUROPE.ID, dailyData: europeData },
+                  { _id: CONST.SELECTED_COUNTRIES_BY_NAME.ID, dailyData: selectedFilteredData}
+                ];
+                sendComplete(res, RESPONSE_CODE.SUCCESS.OK, result)
+                debugEnd(methodName, result.length, true)
               }
               else {
                 debugError(methodName, error);
@@ -152,11 +141,10 @@ exports.getSelectedCountriesInfo = (req, res) => {
             });
         }
         else {
-          sendError(res, RESPONSE_CODE.ERROR.SERVER_ERROR, err.message)
-          debugError(methodName, err)
+          debugError(methodName, error);
+          res.send({ success: false, message: error });
         }
       });
-
   }
   catch (e) {
     sendError(res, RESPONSE_CODE.ERROR.SERVER_ERROR, err.message)
@@ -504,8 +492,8 @@ function task(result,matchingCondition) {
           let sortedResult = selectedData.sort( (a,b) => {
             return a.people_vaccinated - b.people_vaccinated;
           })
-          let last = sortedResult[sortedResult.length - 1]
-          result.push(last)
+          let last = sortedResult[sortedResult.length - 1];
+          result.push(last);
           resolve(result);
         }
         else {
@@ -523,13 +511,13 @@ exports.getPeopleVaccinated = (req, res) => {
   try {
     debugStart(methodName, req.body)
     let to = new Date(req.body.to);
-    //let to = new Date("2021-11-23T00:00:00.000Z");
-
+    //let to = new Date("2021-09-29T00:00:00.000Z");
     let from = new Date();
-    from.setDate(to.getDate() - 7);
+    from.setDate(to.getDate());
+    from.setMonth(to.getMonth() - 1)
 
     let selectedCountries = req.body.selectedCountries;
-    //let selectedCountries = ["Italy", "Spain"]
+    //let selectedCountries = ["Italy"];
     let result = []
     let promise = Promise.resolve();
 
@@ -546,7 +534,6 @@ exports.getPeopleVaccinated = (req, res) => {
 
     promise.then(result => {
       //All tasks completed
-      //console.log(result); 
       sendComplete(res, RESPONSE_CODE.SUCCESS.OK, result)
       debugEnd(methodName, result.length, true)
     });
