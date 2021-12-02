@@ -28,7 +28,10 @@ exports.AGGREGATION = {
                 male_smokers: {$sum: "$male_smokers"},
                 median_age: {$sum: "$median_age"},
                 people_vaccinated: {$sum: '$data.people_vaccinated'},
-                people_fully_vaccinated: {$sum: '$data.people_fully_vaccinated'}
+                people_fully_vaccinated: {$sum: '$data.people_fully_vaccinated'},
+                total_deaths: {$sum: '$data.total_deaths'},
+                total_cases: {$sum: '$data.total_cases'},
+                total_tests: {$sum: '$data.total_tests'},
             },
         },
     ],
