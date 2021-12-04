@@ -23,6 +23,7 @@
     "firebase-admin": "^9.5.0",
     "geojson-validation": "^1.0.2",
     "jsonwebtoken": "^8.5.1",
+    "mathjs": "^10.0.0",
     "mongoose": "^5.12.3",
     "mongoose-paginate": "^5.0.3",
     "multer": "^1.4.2",
@@ -30,6 +31,7 @@
     "nodemon": "^2.0.14",
     "passport": "^0.4.1",
     "passport-local": "^1.0.0",
+    "pca-js": "^1.0.2",
     "randomstring": "^1.1.5",
     "validator": "^12.1.0"
   }

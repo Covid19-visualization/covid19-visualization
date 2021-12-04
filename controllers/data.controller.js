@@ -8,7 +8,11 @@ const DailyData = mongoose.model("DailyData", DailyDataScheme);
 const kmeans = require('node-kmeans');
 
 const { CONST, debugStart, debugEnd, debugCatch, debugError } = require("../utils/utils");
-const { unwindAndMatchByDateAndName, unwindAndMatchByDate } = require("../utils/mongoHandler");
+const { unwindAndMatchByDateAndName,
+  unwindAndMatchByDate,
+  dbLabelStatic,
+  dbLabelDaily,
+  countriesNames } = require("../utils/mongoHandler");
 const { sendHandler, RESPONSE_CODE, sendComplete, sendError } = require("../utils/sendHandler");
 const { AGGREGATION } = require("../utils/aggregation");
 
@@ -109,17 +113,24 @@ exports.getSelectedCountriesInfo = (req, res) => {
       selectedCountries: req.body.selectedCountries
     }
 
-
+    console.log(matchingCondition.selectedCountries)
+    // The first of the following aggregate could be removed,
+    // essentially gives the sum of all data without considering the 
+    // name of the countries, the third instead do the same but considering
+    // each country separately.
     Country.aggregate(
-      unwindAndMatchByDateAndName(AGGREGATION.GET_SELECTED_COUNTRY_INFO, matchingCondition))
-      .exec((err, selectedData) => {
-        if (!err) {
+      unwindAndMatchByDate(AGGREGATION.EUROPE_DAILY, matchingCondition))
+      .exec((error, europeData) => {
+        if (!error) {
+          // This aggregate should replace the first one.
           Country.aggregate(
-            unwindAndMatchByDate(AGGREGATION.EUROPE_DAILY, matchingCondition))
-            .exec((error, europeData) => {
-              if (!error) {
-                let result = [{_id: CONST.SELECTED_COUNTRIES.ID, dailyData: selectedData}, {_id: CONST.EUROPE.ID, dailyData: europeData}];
-
+            unwindAndMatchByDateAndName(AGGREGATION.GET_SELECTED_COUNTRY_DAILY_INFO, matchingCondition))
+            .exec((_error, selectedFilteredData) => {
+              if (!_error) {
+                let result = [
+                  { _id: CONST.EUROPE.ID, dailyData: europeData },
+                  { _id: CONST.SELECTED_COUNTRIES_BY_NAME.ID, dailyData: selectedFilteredData}
+                ];
                 sendComplete(res, RESPONSE_CODE.SUCCESS.OK, result)
                 debugEnd(methodName, result.length, true)
               }
@@ -130,11 +141,10 @@ exports.getSelectedCountriesInfo = (req, res) => {
             });
         }
         else {
-          sendError(res, RESPONSE_CODE.ERROR.SERVER_ERROR, err.message)
-          debugError(methodName, err)
+          debugError(methodName, error);
+          res.send({ success: false, message: error });
         }
       });
-
   }
   catch (e) {
     sendError(res, RESPONSE_CODE.ERROR.SERVER_ERROR, err.message)
@@ -183,13 +193,13 @@ exports.updateData = async (req, res) => {
 
             if (!justUpdate) {
               updateContinentStatistics(continent, lastUpdateContinent);
-              sendComplete(res, RESPONSE_CODE.SUCCESS.CORRECT_UPDATE, countries);
-              debugEnd(methodName, countries.length, true);
+              sendComplete(res, RESPONSE_CODE.SUCCESS.CORRECT_UPDATE, continent);
+              debugEnd(methodName, continent.length, true);
 
             }
             else {
-              sendComplete(res, RESPONSE_CODE.SUCCESS.ALREADY_UPDATED, countries);
-              debugEnd(methodName, countries.length, true);
+              sendComplete(res, RESPONSE_CODE.SUCCESS.ALREADY_UPDATED, continent);
+              debugEnd(methodName, continent.length, true);
             }
           });
       }
@@ -200,6 +210,38 @@ exports.updateData = async (req, res) => {
     debugCatch(methodName, e)
   }
 }
+
+exports.deleteAll = async (req, res) => {
+  let methodName = CONST.METHODS.DELETE_ALL;
+
+  try {
+    debugStart(methodName, req.body)
+    Continent.deleteMany({}, async (e, docs) => {
+      if (e) {
+        sendError(res, RESPONSE_CODE.ERROR.SERVER_ERROR, e.message)
+        debugError(methodName, e.message)
+      }
+      else
+        console.log("Continent deleted")
+    });
+    Country.deleteMany({}, async (e, docs) => {
+      if (e) {
+        sendError(res, RESPONSE_CODE.ERROR.SERVER_ERROR, e.message)
+        debugError(methodName, e.message)
+      }
+      else
+        console.log("Countries deleted")
+    });
+    sendComplete(res, RESPONSE_CODE.SUCCESS.OK, "Ok")
+    debugEnd(methodName, result.length, true)
+  }
+  catch (e) {
+    sendError(res, RESPONSE_CODE.ERROR.SERVER_ERROR, e.message)
+    debugCatch(methodName, e)
+  }
+}
+
+
 
 function setCountryData(item, continent, lastUpdate, onlyUpdates) {
   try {
@@ -270,35 +312,35 @@ function saveNewUpdateInCountry(country, filteredDate, lastVaccinatedData, count
 function updateCountryData(country, item) {
   country.name = item.location;
   country.continent = item.continent;
-  country.population = item.population;
-  country.population_density = item.population_density;
-  country.median_age = item.median_age;
-  country.age_65_older = item.age_65_older;
-  country.age_70_older = item.age_70_older;
-  country.gdp_per_capita = item.gdp_per_capita;
-  country.extreme_poverty = item.extreme_poverty;
-  country.cardiovasc_death_rate = item.cardiovasc_death_rate;
-  country.diabetes_prevalence = item.diabetes_prevalence;
-  country.female_smokers = item.female_smokers;
-  country.male_smokers = item.male_smokers;
-  country.hospital_beds_per_thousand = item.hospital_beds_per_thousand;
-  country.life_expectancy = item.life_expectancy;
-  country.human_development_index = item.human_development_index;
+  country.population = item.population != null ? item.population : 0;
+  country.population_density = item.population_density != null ? item.population_density : 0;
+  country.median_age = item.median_age != null ? item.median_age : 0;
+  country.age_65_older = item.age_65_older != null ? item.age_65_older : 0;
+  country.age_70_older = item.age_70_older != null ? item.age_70_older : 0;
+  country.gdp_per_capita = item.gdp_per_capita != null ? item.gdp_per_capita : 0;
+  country.extreme_poverty = item.extreme_poverty != null ? item.extreme_poverty : 0;
+  country.cardiovasc_death_rate = item.cardiovasc_death_rate != null ? item.cardiovasc_death_rate : 0;
+  country.diabetes_prevalence = item.diabetes_prevalence != null ? item.diabetes_prevalence : 0;
+  country.female_smokers = item.female_smokers != null ? item.female_smokers : 0;
+  country.male_smokers = item.male_smokers != null ? item.male_smokers : 0;
+  country.hospital_beds_per_thousand = item.hospital_beds_per_thousand != null ? item.hospital_beds_per_thousand : 0;
+  country.life_expectancy = item.life_expectancy != null ? item.life_expectancy : 0;
+  country.human_development_index = item.human_development_index != null ? item.human_development_index : 0;
 }
 
 function updateContinentData(continent, item) {
-  continent.population != null ? continent.population += item.population : null;
-  continent.population_density != null ? continent.population_density += item.population_density : null;
-  continent.median_age != null ? continent.median_age += item.median_age : null;
-  continent.gdp_per_capita != null ? continent.gdp_per_capita += item.gdp_per_capita : null;
-  continent.extreme_poverty != null ? continent.extreme_poverty += item.extreme_poverty : null;
-  continent.cardiovasc_death_rate != null ? continent.cardiovasc_death_rate += item.cardiovasc_death_rate : null;
-  continent.diabetes_prevalence != null ? continent.diabetes_prevalence += item.diabetes_prevalence : null;
-  continent.female_smokers != null ? continent.female_smokers += item.female_smokers : null;
-  continent.male_smokers != null ? continent.male_smokers += item.male_smokers : null;
-  continent.hospital_beds_per_thousand != null ? continent.hospital_beds_per_thousand += item.hospital_beds_per_thousand : null;
-  continent.life_expectancy != null ? continent.life_expectancy += item.life_expectancy : null;
-  continent.human_development_index != null ? continent.human_development_index += item.human_development_index : null;
+  continent.population != null ? continent.population += item.population : 0;
+  continent.population_density != null ? continent.population_density += item.population_density : 0;
+  continent.median_age != null ? continent.median_age += item.median_age : 0;
+  continent.gdp_per_capita != null ? continent.gdp_per_capita += item.gdp_per_capita : 0;
+  continent.extreme_poverty != null ? continent.extreme_poverty += item.extreme_poverty : 0;
+  continent.cardiovasc_death_rate != null ? continent.cardiovasc_death_rate += item.cardiovasc_death_rate : 0;
+  continent.diabetes_prevalence != null ? continent.diabetes_prevalence += item.diabetes_prevalence : 0;
+  continent.female_smokers != null ? continent.female_smokers += item.female_smokers : 0;
+  continent.male_smokers != null ? continent.male_smokers += item.male_smokers : 0;
+  continent.hospital_beds_per_thousand != null ? continent.hospital_beds_per_thousand += item.hospital_beds_per_thousand : 0;
+  continent.life_expectancy != null ? continent.life_expectancy += item.life_expectancy : 0;
+  continent.human_development_index != null ? continent.human_development_index += item.human_development_index : 0;
 }
 
 function updateDailyData(dailyData, timestamp, data) {
@@ -353,6 +395,154 @@ function updateContinentStatistics(continent, lastUpdate) {
   continent.save();
 }
 
+/*
+exports.computePca = (req, res) => {
+  let methodName = CONST.METHODS.COMPUTE_PCA
+
+  try {
+    debugStart(methodName, req.body)
+
+    let matchingCondition = {
+      from: new Date("2021-11-22T00:00:00.000Z"),
+      //from: new Date(req.body.from),
+      to: new Date("2021-11-23T00:00:00.000Z"),
+      //to: new Date(req.body.to),
+      selectedCountries: ["Italy", "Spain"],
+      //selectedCountries: req.body.selectedCountries
+    }
+
+    let matchBy = {
+      $match: {
+          "data.date": { $gte: matchingCondition.from, $lte: matchingCondition.to },
+          "name": {$in: matchingCondition.selectedCountries },
+      }
+    };
+    
+    let groupBy = {
+      $group: {
+        _id: "$name"
+      }
+    }
+    Country.aggregate(
+      [AGGREGATION.UNWIND_DATA, matchBy, groupBy])
+      .exec((err, selectedData) => {
+        if (!err) {
+          let result = [{dailyData: selectedData}];
+ 
+          sendComplete(res, RESPONSE_CODE.SUCCESS.OK, selectedData)
+          debugEnd(methodName, result.length, true)
+        }
+        else {
+          sendError(res, RESPONSE_CODE.ERROR.SERVER_ERROR, err.message)
+          debugError(methodName, err)
+        }
+      });
+
+  }
+  catch (e) {
+    sendError(res, RESPONSE_CODE.ERROR.SERVER_ERROR, e.message)
+    debugCatch(methodName, e)
+  }
+}
+*/
+
+
+exports.computePca = (req, res) => {
+  let methodName = CONST.METHODS.COMPUTE_PCA
+
+  try {
+    debugStart(methodName, req.body)
+
+    let matchingCondition = {
+      from: new Date(req.body.from),
+      to: new Date(req.body.to),
+      selectedCountry: req.body.selectedCountries
+    }
+
+    Country.find({
+      "name": matchingCondition.selectedCountry,
+      "data.date": { $gte: matchingCondition.from, $lte: matchingCondition.to }
+    })
+      .exec((err, selectedData) => {
+        if (!err) {
+          let result = [{ dailyData: selectedData }];
+
+          sendComplete(res, RESPONSE_CODE.SUCCESS.OK, selectedData)
+          debugEnd(methodName, result.length, true)
+        }
+        else {
+          sendError(res, RESPONSE_CODE.ERROR.SERVER_ERROR, err.message)
+          debugError(methodName, err)
+        }
+      });
+
+  }
+  catch (e) {
+    sendError(res, RESPONSE_CODE.ERROR.SERVER_ERROR, e.message)
+    debugCatch(methodName, e)
+  }
+}
+
+function task(result,matchingCondition) {
+  return new Promise ( (resolve, reject) => {
+    Country.aggregate(
+      unwindAndMatchByDateAndName(AGGREGATION.GET_PEOPLE_VACCINATED, matchingCondition))
+      .exec((err, selectedData) => {
+        if (!err) {
+          let sortedResult = selectedData.sort( (a,b) => {
+            return a.people_vaccinated - b.people_vaccinated;
+          })
+          let last = sortedResult[sortedResult.length - 1];
+          result.push(last);
+          resolve(result);
+        }
+        else {
+          sendError(res, RESPONSE_CODE.ERROR.SERVER_ERROR, err.message)
+          debugError(methodName, err)
+        }
+      });
+  });
+}
+
+
+exports.getPeopleVaccinated = (req, res) => {
+  let methodName = CONST.METHODS.GET_PEOPLE_VACCINATED
+
+  try {
+    debugStart(methodName, req.body)
+    let to = new Date(req.body.to);
+    //let to = new Date("2021-09-29T00:00:00.000Z");
+    let from = new Date();
+    from.setDate(to.getDate());
+    from.setMonth(to.getMonth() - 1)
+
+    let selectedCountries = req.body.selectedCountries;
+    //let selectedCountries = ["Italy"];
+    let result = []
+    let promise = Promise.resolve();
+
+    selectedCountries.forEach(country => {
+      let matchingCondition = {
+        from: from,
+        to: to,
+        selectedCountries: new Array(country)
+      }
+      promise = promise.then(() => {
+        return task(result, matchingCondition);
+      });
+    })
+
+    promise.then(result => {
+      //All tasks completed
+      sendComplete(res, RESPONSE_CODE.SUCCESS.OK, result)
+      debugEnd(methodName, result.length, true)
+    });
+  }
+  catch (e) {
+    sendError(res, RESPONSE_CODE.ERROR.SERVER_ERROR, e.message)
+    debugCatch(methodName, e)
+  }
+}
 
 exports.kmeansTest = (req, res) => {
   const data = [

@@ -27,6 +27,7 @@ server.on('listening', onListening);
 mongoose.Promise = global.Promise;
 console.log("DEBUG: " + config.NODE_ENV);
 var dbUrl = DB[config.NODE_ENV];
+//var dbUrl = DB.development
 
 
 mongoose.connect(dbUrl.host, { useNewUrlParser: true, useUnifiedTopology: true,  useCreateIndex: true}, function (err, res) {

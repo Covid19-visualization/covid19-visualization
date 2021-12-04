@@ -17,7 +17,6 @@ exports.unwindAndMatchByDate = (groupBy, matchCondition) => {
         }
     }
     return unwindAndMatch(groupBy, matchBy)
-    
 }
 
 exports.unwindAndMatchByName = (groupBy, matchCondition) => {
@@ -27,7 +26,6 @@ exports.unwindAndMatchByName = (groupBy, matchCondition) => {
         }
     }
     return unwindAndMatch(groupBy, matchBy)
-
 }
 
 exports.unwindAndMatchByDateAndName = (groupBy, matchCondition) => {
