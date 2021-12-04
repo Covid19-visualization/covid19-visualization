@@ -28,7 +28,9 @@ exports.AGGREGATION = {
                 male_smokers: {$sum: "$male_smokers"},
                 median_age: {$sum: "$median_age"},
                 people_vaccinated: {$sum: '$data.people_vaccinated'},
-                people_fully_vaccinated: {$sum: '$data.people_fully_vaccinated'}
+                people_fully_vaccinated: {$sum: '$data.people_fully_vaccinated'},
+                total_deaths: {$sum: '$data.total_deaths'},
+                total_cases: {$push: '$data.total_cases'},
             },
         },
     ],
@@ -54,7 +56,9 @@ exports.AGGREGATION = {
                 population: { $first: "$population"},
                 name: { $first: "$name" },
                 people_vaccinated: {$first: '$data.people_vaccinated'},
-                people_fully_vaccinated: {$first: '$data.people_fully_vaccinated'}
+                people_fully_vaccinated: {$first: '$data.people_fully_vaccinated'},
+                total_deaths: {$first: '$data.total_deaths'},
+                total_cases: {$first: '$data.total_cases'}
             },
         },
     ],
@@ -80,7 +84,7 @@ exports.AGGREGATION = {
                 female_smokers: {$first: "$female_smokers"},
                 male_smokers: {$first: "$male_smokers"},
                 median_age: {$first: "$median_age"},
-                population: {$first: '$population'},
+                population: {$first: '$population'}
             },
         },
     ],

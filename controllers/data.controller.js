@@ -223,17 +223,17 @@ exports.deleteAll = async (req, res) => {
       }
       else
         console.log("Continent deleted")
+        Country.deleteMany({}, async (e, docs) => {
+          if (e) {
+            sendError(res, RESPONSE_CODE.ERROR.SERVER_ERROR, e.message)
+            debugError(methodName, e.message)
+          }
+          else
+            console.log("Countries deleted")
+            sendComplete(res, RESPONSE_CODE.SUCCESS.OK, "Ok")
+            debugEnd(methodName, 0, true)
+        });
     });
-    Country.deleteMany({}, async (e, docs) => {
-      if (e) {
-        sendError(res, RESPONSE_CODE.ERROR.SERVER_ERROR, e.message)
-        debugError(methodName, e.message)
-      }
-      else
-        console.log("Countries deleted")
-    });
-    sendComplete(res, RESPONSE_CODE.SUCCESS.OK, "Ok")
-    debugEnd(methodName, result.length, true)
   }
   catch (e) {
     sendError(res, RESPONSE_CODE.ERROR.SERVER_ERROR, e.message)
@@ -244,6 +244,7 @@ exports.deleteAll = async (req, res) => {
 
 
 function setCountryData(item, continent, lastUpdate, onlyUpdates) {
+  let methodName = CONST.METHODS.UPDATE_DATA;
   try {
     let country = Country({ "name": item.location });
     updateCountryData(country, item);
@@ -289,7 +290,7 @@ function setCountryData(item, continent, lastUpdate, onlyUpdates) {
     else return newData;
 
   } catch (e) {
-    sendError(res, RESPONSE_CODE.ERROR.SERVER_ERROR, err.message)
+    //sendError(e, RESPONSE_CODE.ERROR.SERVER_ERROR, e.message)
     debugCatch(methodName, e)
   }
 
