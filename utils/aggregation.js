@@ -31,6 +31,8 @@ exports.AGGREGATION = {
                 people_fully_vaccinated: {$sum: '$data.people_fully_vaccinated'},
                 total_deaths: {$sum: '$data.total_deaths'},
                 total_cases: {$push: '$data.total_cases'},
+                total_boosters: {$sum: '$data.total_boosters'},
+                stringency_index : {$sum: '$data.stringency_index'}
             },
         },
     ],
@@ -58,7 +60,9 @@ exports.AGGREGATION = {
                 people_vaccinated: {$first: '$data.people_vaccinated'},
                 people_fully_vaccinated: {$first: '$data.people_fully_vaccinated'},
                 total_deaths: {$first: '$data.total_deaths'},
-                total_cases: {$first: '$data.total_cases'}
+                total_cases: {$first: '$data.total_cases'},
+                total_boosters: {$first: '$data.total_boosters'},
+                stringency_index : {$first: '$data.stringency_index'}
             },
         },
     ],
