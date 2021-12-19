@@ -545,33 +545,3 @@ exports.getPeopleVaccinated = (req, res) => {
   }
 }
 
-exports.kmeansTest = (req, res) => {
-  const data = [
-    { 'country': 'Italy', 'positive': 91259, 'deaths': 60420, 'gdp': 1.4 },
-    { 'country': 'France', 'positive': 400000, 'deaths': 98787, 'gdp': 3.4 },
-    { 'country': 'Spain', 'positive': 700, 'deaths': 716, 'gdp': 1.5 },
-    { 'country': 'Germany', 'positive': 48000, 'deaths': 11567, 'gdp': 2.4 },
-    { 'country': 'UK', 'positive': 14000, 'deaths': 6426, 'gdp': 1.09 },
-    { 'country': 'Poland', 'positive': 15000, 'deaths': 8700, 'gdp': 0.8 },
-  ];
-
-  // Create the data 2D-array (vectors) describing the data
-  let vectors = new Array();
-  for (let i = 0; i < data.length; i++) {
-    vectors[i] = [data[i]['positive'], data[i]['deaths'], data[i]['gdp']];
-  }
-
-  kmeans.clusterize(vectors, { k: 2 }, (err, result) => {
-    if (err) console.error(err);
-    else {
-
-      res.send({
-        success: true,
-        status: 200,
-        data: result,
-      });
-    }
-  });
-
-
-}
