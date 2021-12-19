@@ -8,11 +8,7 @@ const DailyData = mongoose.model("DailyData", DailyDataScheme);
 const kmeans = require('node-kmeans');
 
 const { CONST, debugStart, debugEnd, debugCatch, debugError } = require("../utils/utils");
-const { unwindAndMatchByDateAndName,
-  unwindAndMatchByDate,
-  dbLabelStatic,
-  dbLabelDaily,
-  countriesNames } = require("../utils/mongoHandler");
+const { unwindAndMatchByDateAndName, unwindAndMatchByDate } = require("../utils/mongoHandler");
 const { sendHandler, RESPONSE_CODE, sendComplete, sendError } = require("../utils/sendHandler");
 const { AGGREGATION } = require("../utils/aggregation");
 
@@ -174,19 +170,21 @@ exports.updateData = async (req, res) => {
             for (var isoCode in json) {
               item = json[isoCode];
               if (item.continent == CONST.EUROPE.NAME) {
+                if(isExclude(item.location) == false){
+                  console.log(item.location)
+                  justUpdate = !(docs.length == 0);
 
-                justUpdate = !(docs.length == 0);
+                  !justUpdate
+                    ? country = setCountryData(item, continent, CONST.DEFAULT.DATE, false)
+                    : country = setCountryData(item, continent, docs[0]._doc.lastUpdate, true);
 
-                !justUpdate
-                  ? country = setCountryData(item, continent, CONST.DEFAULT.DATE, false)
-                  : country = setCountryData(item, continent, docs[0]._doc.lastUpdate, true);
-
-                if (!justUpdate) {
-                  lastUpdateContinent == null
-                    ? lastUpdateContinent = country.lastUpdate
-                    : lastUpdateContinent < country.lastUpdate
+                  if (!justUpdate) {
+                    lastUpdateContinent == null
                       ? lastUpdateContinent = country.lastUpdate
-                      : null;
+                      : lastUpdateContinent < country.lastUpdate
+                        ? lastUpdateContinent = country.lastUpdate
+                        : null;
+                  }
                 }
               }
             }
@@ -209,6 +207,14 @@ exports.updateData = async (req, res) => {
     sendError(res, RESPONSE_CODE.ERROR.SERVER_ERROR, err.message)
     debugCatch(methodName, e)
   }
+}
+
+function isExclude(location){
+  let exclude = ['Guernsey', 'Jersey', 'Vatican', 'Andorra', 'Faeroe Islands', 'Gibraltar', 'Isle of Man', 'Kosovo', 'Liechtenstein', 'Monaco', 'San Marino', 'North Macedonia'];
+  for(var i = 0; i < exclude.length; i++){
+    if(exclude[i] === location) return true
+  }
+  return false
 }
 
 exports.deleteAll = async (req, res) => {
@@ -240,8 +246,6 @@ exports.deleteAll = async (req, res) => {
     debugCatch(methodName, e)
   }
 }
-
-
 
 function setCountryData(item, continent, lastUpdate, onlyUpdates) {
   let methodName = CONST.METHODS.UPDATE_DATA;
@@ -316,15 +320,11 @@ function updateCountryData(country, item) {
   country.population = item.population != null ? item.population : 0;
   country.population_density = item.population_density != null ? item.population_density : 0;
   country.median_age = item.median_age != null ? item.median_age : 0;
-  country.age_65_older = item.age_65_older != null ? item.age_65_older : 0;
-  country.age_70_older = item.age_70_older != null ? item.age_70_older : 0;
   country.gdp_per_capita = item.gdp_per_capita != null ? item.gdp_per_capita : 0;
-  country.extreme_poverty = item.extreme_poverty != null ? item.extreme_poverty : 0;
   country.cardiovasc_death_rate = item.cardiovasc_death_rate != null ? item.cardiovasc_death_rate : 0;
   country.diabetes_prevalence = item.diabetes_prevalence != null ? item.diabetes_prevalence : 0;
   country.female_smokers = item.female_smokers != null ? item.female_smokers : 0;
   country.male_smokers = item.male_smokers != null ? item.male_smokers : 0;
-  country.hospital_beds_per_thousand = item.hospital_beds_per_thousand != null ? item.hospital_beds_per_thousand : 0;
   country.life_expectancy = item.life_expectancy != null ? item.life_expectancy : 0;
   country.human_development_index = item.human_development_index != null ? item.human_development_index : 0;
 }
@@ -334,12 +334,10 @@ function updateContinentData(continent, item) {
   continent.population_density != null ? continent.population_density += item.population_density : 0;
   continent.median_age != null ? continent.median_age += item.median_age : 0;
   continent.gdp_per_capita != null ? continent.gdp_per_capita += item.gdp_per_capita : 0;
-  continent.extreme_poverty != null ? continent.extreme_poverty += item.extreme_poverty : 0;
   continent.cardiovasc_death_rate != null ? continent.cardiovasc_death_rate += item.cardiovasc_death_rate : 0;
   continent.diabetes_prevalence != null ? continent.diabetes_prevalence += item.diabetes_prevalence : 0;
   continent.female_smokers != null ? continent.female_smokers += item.female_smokers : 0;
   continent.male_smokers != null ? continent.male_smokers += item.male_smokers : 0;
-  continent.hospital_beds_per_thousand != null ? continent.hospital_beds_per_thousand += item.hospital_beds_per_thousand : 0;
   continent.life_expectancy != null ? continent.life_expectancy += item.life_expectancy : 0;
   continent.human_development_index != null ? continent.human_development_index += item.human_development_index : 0;
 }
@@ -352,22 +350,11 @@ function updateDailyData(dailyData, timestamp, data) {
   dailyData.total_deaths = data.total_deaths;
   dailyData.new_deaths = data.new_deaths;
   dailyData.new_deaths_smoothed = data.new_deaths_smoothed;
-  dailyData.total_cases_per_million = data.total_cases_per_million;
-  dailyData.new_cases_per_million = data.new_cases_per_million;
-  dailyData.new_cases_smoothed_per_million = data.new_cases_smoothed_per_million;
-  dailyData.total_deaths_per_million = data.total_deaths_per_million;
-  dailyData.new_deaths_per_million = data.new_deaths_per_million;
-  dailyData.new_deaths_smoothed_per_million = data.new_deaths_smoothed_per_million;
-  dailyData.reproduction_rate = data.reproduction_rate;
-  dailyData.new_tests_smoothed = data.new_tests_smoothed;
-  dailyData.new_tests_smoothed_per_thousand = data.new_tests_smoothed_per_thousand;
-  dailyData.positive_rate = data.positive_rate;
-  dailyData.tests_per_case = data.tests_per_case;
-  dailyData.tests_units = data.tests_units;
   dailyData.stringency_index = data.stringency_index;
   dailyData.new_vaccinations_smoothed = data.new_vaccinations_smoothed;
   dailyData.people_fully_vaccinated = data.people_fully_vaccinated; // 2 doses
   dailyData.people_vaccinated = data.people_vaccinated; // 1 dose
+  dailyData.total_boosters = data.total_boosters; // 3 dose
 }
 
 function updateVaccinatedData(data, lastVaccinatedData) {
@@ -395,58 +382,6 @@ function updateContinentStatistics(continent, lastUpdate) {
   continent.lastUpdate = lastUpdate;
   continent.save();
 }
-
-/*
-exports.computePca = (req, res) => {
-  let methodName = CONST.METHODS.COMPUTE_PCA
-
-  try {
-    debugStart(methodName, req.body)
-
-    let matchingCondition = {
-      from: new Date("2021-11-22T00:00:00.000Z"),
-      //from: new Date(req.body.from),
-      to: new Date("2021-11-23T00:00:00.000Z"),
-      //to: new Date(req.body.to),
-      selectedCountries: ["Italy", "Spain"],
-      //selectedCountries: req.body.selectedCountries
-    }
-
-    let matchBy = {
-      $match: {
-          "data.date": { $gte: matchingCondition.from, $lte: matchingCondition.to },
-          "name": {$in: matchingCondition.selectedCountries },
-      }
-    };
-    
-    let groupBy = {
-      $group: {
-        _id: "$name"
-      }
-    }
-    Country.aggregate(
-      [AGGREGATION.UNWIND_DATA, matchBy, groupBy])
-      .exec((err, selectedData) => {
-        if (!err) {
-          let result = [{dailyData: selectedData}];
- 
-          sendComplete(res, RESPONSE_CODE.SUCCESS.OK, selectedData)
-          debugEnd(methodName, result.length, true)
-        }
-        else {
-          sendError(res, RESPONSE_CODE.ERROR.SERVER_ERROR, err.message)
-          debugError(methodName, err)
-        }
-      });
-
-  }
-  catch (e) {
-    sendError(res, RESPONSE_CODE.ERROR.SERVER_ERROR, e.message)
-    debugCatch(methodName, e)
-  }
-}
-*/
-
 
 exports.computePca = (req, res) => {
   let methodName = CONST.METHODS.COMPUTE_PCA
@@ -494,6 +429,17 @@ function task(result,matchingCondition) {
             return a.people_vaccinated - b.people_vaccinated;
           })
           let last = sortedResult[sortedResult.length - 1];
+          if(last.stringency_index == null){
+
+            for(var i = 2; i < sortedResult.length; i++){
+              var string = sortedResult[sortedResult.length - i].stringency_index
+              if(string != null){
+                last.stringency_index = string
+                break;
+              }
+            }
+          }
+          
           result.push(last);
           resolve(result);
         }
@@ -544,4 +490,3 @@ exports.getPeopleVaccinated = (req, res) => {
     debugCatch(methodName, e)
   }
 }
-
