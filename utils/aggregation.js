@@ -40,9 +40,10 @@ exports.AGGREGATION = {
         {
             $group: {
                 _id: '$name',
-                total_cases: { $sum: '$data.new_cases_smoothed' },
+                total_cases: { $first: '$total_cases' },
                 total_vaccinations: { $sum: '$data.new_vaccinations_smoothed' },
-                total_new_deaths: { $sum: '$data.new_deaths_smoothed'},
+                people_fully_vaccinated: {$first: '$people_fully_vaccinated'},
+                total_new_deaths: { $first: '$data.total_deaths'},
                 population: { $first: '$population' },
                 name: { $first: "$name" }
             },
