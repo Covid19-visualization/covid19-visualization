@@ -6,7 +6,7 @@ const mongoosePaginate = require("mongoose-paginate");
 
 var DailyDataSchema = new Schema({
     date: Date,
-    total_cases: String,
+    total_cases: { type: Number, default: 0},
     new_cases: Number,
     new_cases_smoothed: Number,
     total_deaths: Number,
