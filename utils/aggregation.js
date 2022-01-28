@@ -39,8 +39,11 @@ exports.AGGREGATION = {
     ALL_COUNTRY_INFO: [
         {
             $group: {
-                _id: '$name',
-                total_cases: { $first: '$total_cases' },
+                _id: {
+                    date: "$data.date",
+                    name: "$name",
+                },
+                total_cases: { $first: '$data.total_cases' },
                 total_vaccinations: { $sum: '$data.new_vaccinations_smoothed' },
                 people_fully_vaccinated: {$first: '$people_fully_vaccinated'},
                 total_new_deaths: { $first: '$data.total_deaths'},

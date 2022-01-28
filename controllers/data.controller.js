@@ -41,15 +41,25 @@ exports.getAllCountryInfo = (req, res) => {
   let methodName = CONST.METHODS.GET_ALL_COUNTRY_INFO;
   try {
     debugStart(methodName, req.body)
+
+    let to = new Date(req.body.to)
+    
+    let from = new Date();
+
+    from.setFullYear(to.getFullYear())
+    from.setMonth(to.getMonth())
+    from.setDate(to.getDate() - 2);
+
     let matchingCondition = {
-      from: new Date(req.body.from),
-      to: new Date(req.body.to)
+      from: from,
+      to: to
     }
 
     Country.aggregate(
       unwindAndMatchByDate(AGGREGATION.ALL_COUNTRY_INFO, matchingCondition))
       .exec((err, countries) => {
         if (!err) {
+          console.log(countries)
           sendComplete(res, RESPONSE_CODE.SUCCESS.OK, countries)
           debugEnd(methodName, countries.length, true)
         }
@@ -353,7 +363,7 @@ function updateDailyData(dailyData, timestamp, data) {
   dailyData.stringency_index = data.stringency_index;
   dailyData.new_vaccinations_smoothed = data.new_vaccinations_smoothed;
   dailyData.people_fully_vaccinated = data.people_fully_vaccinated; // 2 doses
-  dailyData.people_vaccinated = data.people_vaccinated; // 1 dose
+  dailyData.people_vaccinated = data.people_vaccinated;// 1 dose
   dailyData.total_boosters = data.total_boosters; // 3 dose
 }
 
@@ -429,8 +439,7 @@ function task(result,matchingCondition) {
             return a.people_vaccinated - b.people_vaccinated;
           })
           let last = sortedResult[sortedResult.length - 1];
-          if(last.stringency_index == null){
-
+          if(last != null && last.stringency_index == null){
             for(var i = 2; i < sortedResult.length; i++){
               var string = sortedResult[sortedResult.length - i].stringency_index
               if(string != null){
@@ -439,7 +448,6 @@ function task(result,matchingCondition) {
               }
             }
           }
-          
           result.push(last);
           resolve(result);
         }
@@ -460,9 +468,11 @@ exports.getPeopleVaccinated = (req, res) => {
     let to = new Date(req.body.to);
     //let to = new Date("2021-09-29T00:00:00.000Z");
     let from = new Date();
+
     from.setDate(to.getDate());
     from.setMonth(to.getMonth() - 1)
-
+    from.setFullYear(to.getFullYear() - 1)
+    
     let selectedCountries = req.body.selectedCountries;
     //let selectedCountries = ["Italy"];
     let result = []
