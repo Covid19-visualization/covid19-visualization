@@ -8,7 +8,7 @@ const DailyData = mongoose.model("DailyData", DailyDataScheme);
 const kmeans = require('node-kmeans');
 
 const { CONST, debugStart, debugEnd, debugCatch, debugError } = require("../utils/utils");
-const { unwindAndMatchByDateAndName, unwindAndMatchByDate } = require("../utils/mongoHandler");
+const { unwindAndMatchByDateAndName, unwindAndMatchByDate, unwindAndMatchByName } = require("../utils/mongoHandler");
 const { sendHandler, RESPONSE_CODE, sendComplete, sendError } = require("../utils/sendHandler");
 const { AGGREGATION } = require("../utils/aggregation");
 
@@ -42,24 +42,23 @@ exports.getAllCountryInfo = (req, res) => {
   try {
     debugStart(methodName, req.body)
 
+    /*
     let to = new Date(req.body.to)
-    
     let from = new Date();
-
     from.setFullYear(to.getFullYear())
     from.setMonth(to.getMonth())
     from.setDate(to.getDate() - 2);
+    */
 
     let matchingCondition = {
-      from: from,
-      to: to
+      from: new Date(req.body.from),
+      to: new Date(req.body.to)
     }
 
     Country.aggregate(
       unwindAndMatchByDate(AGGREGATION.ALL_COUNTRY_INFO, matchingCondition))
       .exec((err, countries) => {
         if (!err) {
-          console.log(countries)
           sendComplete(res, RESPONSE_CODE.SUCCESS.OK, countries)
           debugEnd(methodName, countries.length, true)
         }
@@ -119,7 +118,6 @@ exports.getSelectedCountriesInfo = (req, res) => {
       selectedCountries: req.body.selectedCountries
     }
 
-    console.log(matchingCondition.selectedCountries)
     // The first of the following aggregate could be removed,
     // essentially gives the sum of all data without considering the 
     // name of the countries, the third instead do the same but considering
@@ -402,17 +400,23 @@ exports.computePca = (req, res) => {
     let matchingCondition = {
       from: new Date(req.body.from),
       to: new Date(req.body.to),
-      selectedCountry: req.body.selectedCountries
+      selectedCountries: req.body.selectedCountries
     }
 
+    /*
     Country.find({
-      "name": matchingCondition.selectedCountry,
+      "name": matchingCondition.selectedCountries,
       "data.date": { $gte: matchingCondition.from, $lte: matchingCondition.to }
     })
+    */
+    
+
+    Country.aggregate(
+      unwindAndMatchByDateAndName(AGGREGATION.COMPUTE_PCA, matchingCondition))
+      
       .exec((err, selectedData) => {
         if (!err) {
           let result = [{ dailyData: selectedData }];
-
           sendComplete(res, RESPONSE_CODE.SUCCESS.OK, selectedData)
           debugEnd(methodName, result.length, true)
         }
