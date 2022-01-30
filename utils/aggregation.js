@@ -40,11 +40,12 @@ exports.AGGREGATION = {
         {
             $group: {
                 _id: {
-                    date: "$data.date",
                     name: "$name",
                 },
+                new_cases: { $sum: '$data.new_cases_smoothed' },
+                new_vaccinations: { $sum: '$data.new_vaccinations_smoothed' }, 
+                new_deaths: {$sum: '$data.new_deaths_smoothed'},
                 total_cases: { $first: '$data.total_cases' },
-                total_vaccinations: { $sum: '$data.new_vaccinations_smoothed' },
                 people_fully_vaccinated: {$first: '$people_fully_vaccinated'},
                 total_new_deaths: { $first: '$data.total_deaths'},
                 population: { $first: '$population' },
@@ -58,7 +59,10 @@ exports.AGGREGATION = {
     GET_PEOPLE_VACCINATED: [
         {
             $group: {
-                _id: "$data.date",
+                _id: {
+                    date: "$data.date",
+                    name: "$name",
+                },
                 population: { $first: "$population"},
                 name: { $first: "$name" },
                 people_vaccinated: {$first: '$data.people_vaccinated'},
@@ -66,12 +70,32 @@ exports.AGGREGATION = {
                 total_deaths: {$first: '$data.total_deaths'},
                 total_cases: {$first: '$data.total_cases'},
                 total_boosters: {$first: '$data.total_boosters'},
-                stringency_index : {$first: '$data.stringency_index'}
+                stringency_index : {$first: '$data.stringency_index'},
+                new_cases: { $sum: '$data.new_cases_smoothed' },
+                new_vaccinations: { $sum: '$data.new_vaccinations_smoothed' }, 
+                new_deaths: {$sum: '$data.new_deaths_smoothed'}
             },
         },
     ],
     COMPUTE_PCA: [
-        {},
+        {
+            $group: {
+                _id: {
+                    date: "$data.date",
+                    name: "$name",
+                },
+                new_cases: {$push: "$data.new_cases"},
+                new_cases_smoothed: {$push: "$data.new_cases_smoothed"},
+                total_deaths: {$push: "$data.total_deaths"},
+                new_deaths: {$push: "$data.new_deaths"},
+                new_deaths_smoothed: {$push: "$data.new_deaths_smoothed"},
+                stringency_index: {$push: "$data.stringency_index"},
+                new_vaccinations_smoothed: {$push: "$data.new_vaccinations_smoothed"},
+                people_fully_vaccinated: {$push: "$data.people_fully_vaccinated"},
+                people_vaccinated: {$push: "$data.people_vaccinated"},
+                total_boosters: {$push: "$data.total_boosters"}
+            }
+        },
     ],
     GET_SELECTED_COUNTRY_DAILY_INFO: [
         {
@@ -93,7 +117,7 @@ exports.AGGREGATION = {
                 female_smokers: {$first: "$female_smokers"},
                 male_smokers: {$first: "$male_smokers"},
                 median_age: {$first: "$median_age"},
-                population: {$first: '$population'}
+                population: {$first: '$population'},
             },
         },
     ],
